@@ -53,7 +53,26 @@
                 const proxyList = $('#proxyList');
                 proxyList.empty(); // Clear previous proxies
                 proxies.forEach(proxy => {
-                    proxyList.append(`<li><a href="${proxy.url}" target="_blank">${proxy.name}</a></li>`);
+                    proxyList.append(`
+                        <li>
+                            <a href="#" class="proxy-link" data-url="${proxy.url}">${proxy.name}</a>
+                        </li>
+                    `);
+                });
+
+                // Add click handler to open proxies with confirmation
+                $('.proxy-link').click(function(event) {
+                    event.preventDefault(); // Prevent default anchor behavior
+                    const proxyUrl = $(this).data('url');
+                    const confirmOpen = confirm(`Do you want to open ${proxyUrl}?`);
+
+                    // If confirmed, open the link in a new tab
+                    if (confirmOpen) {
+                        window.open(proxyUrl, '_blank');
+                    } else {
+                        // If user clicks "No", open the link in the same window
+                        window.location.href = proxyUrl;
+                    }
                 });
             });
         }
@@ -100,7 +119,13 @@
                 const suggestedProxyList = $('#suggestedProxyList');
                 suggestedProxyList.empty(); // Clear previous suggestions
                 suggestedProxies.forEach(suggestion => {
-                    suggestedProxyList.append(`<li>${suggestion.name} - <button class="approve-btn" data-name="${suggestion.name}">Approve</button> <button class="reject-btn" data-name="${suggestion.name}">Reject</button></li>`);
+                    suggestedProxyList.append(`
+                        <li>
+                            ${suggestion.name} - 
+                            <button class="approve-btn" data-name="${suggestion.name}">Approve</button>
+                            <button class="reject-btn" data-name="${suggestion.name}">Reject</button>
+                        </li>
+                    `);
                 });
 
                 // Admin approve/reject functionality
