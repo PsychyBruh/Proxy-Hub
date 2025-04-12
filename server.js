@@ -101,15 +101,14 @@ app.get('/api/proxies', (req, res) => {
   res.json(readProxies());
 });
 
-// 📊 Get usage stats
-app.get('/api/stats', (req, res) => {
-  res.json(readUsage());
-});
-
 // ➕ Add proxy (admin only)
 app.post('/api/proxies', verifyToken, upload.single('logo'), (req, res) => {
   const { name, url } = req.body;
   const logo = req.file ? `/uploads/${req.file.filename}` : null;
+
+  if (!name || !url) {
+    return res.status(400).json({ success: false, message: 'Name and URL are required' });
+  }
 
   const proxies = readProxies();
   const newProxy = { name, url, logo };
@@ -127,6 +126,10 @@ app.post('/api/proxies', verifyToken, upload.single('logo'), (req, res) => {
 app.delete('/api/proxies', verifyToken, (req, res) => {
   const { name } = req.body;
 
+  if (!name) {
+    return res.status(400).json({ success: false, message: 'Proxy name is required' });
+  }
+
   const proxies = readProxies().filter(p => p.name !== name);
   writeProxies(proxies);
 
@@ -134,17 +137,6 @@ app.delete('/api/proxies', verifyToken, (req, res) => {
   delete usage[name];
   writeUsage(usage);
 
-  res.json({ success: true });
-});
-
-// 🚀 Track proxy launch
-app.post('/api/launch', (req, res) => {
-  const { name } = req.body;
-  const usage = readUsage();
-  if (usage[name] !== undefined) {
-    usage[name]++;
-    writeUsage(usage);
-  }
   res.json({ success: true });
 });
 
