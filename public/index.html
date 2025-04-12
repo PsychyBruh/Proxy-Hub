@@ -18,6 +18,120 @@
   <!-- Proxy List -->
   <div class="card-grid" id="proxyList"></div>
 
+  <!-- Proxy Suggestion Form -->
+  <div class="suggestion-form">
+    <h2>Suggest a Proxy</h2>
+    <input type="text" id="suggestionName" placeholder="Proxy Name" required>
+    <input type="url" id="suggestionUrl" placeholder="Proxy URL" required>
+    <input type="file" id="suggestionLogo" accept="image/*" placeholder="Proxy Logo">
+    <button onclick="submitSuggestion()">Submit Suggestion</button>
+  </div>
+
+  <!-- Suggested Proxies Section -->
+  <h2>Suggested Proxies</h2>
+  <div id="suggestedProxiesList">
+    <!-- Suggested proxies will be loaded here -->
+  </div>
+
   <script src="script.js"></script>
+
+  <script>
+    // Fetch and display existing proxies
+    async function loadProxies() {
+      const res = await fetch('/api/proxies');
+      const proxies = await res.json();
+      const list = document.getElementById('proxyList');
+      list.innerHTML = '';
+      proxies.forEach(proxy => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        if (proxy.logo) {
+          const img = document.createElement('img');
+          img.src = proxy.logo;
+          img.alt = `${proxy.name} logo`;
+          card.appendChild(img);
+        }
+        const name = document.createElement('h3');
+        name.textContent = proxy.name;
+        card.appendChild(name);
+
+        const url = document.createElement('p');
+        url.textContent = proxy.url;
+        card.appendChild(url);
+
+        list.appendChild(card);
+      });
+    }
+
+    // Fetch and display suggested proxies
+    async function loadSuggestedProxies() {
+      const res = await fetch('/api/suggested-proxies', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      const suggestions = await res.json();
+      const list = document.getElementById('suggestedProxiesList');
+      list.innerHTML = '';
+
+      suggestions.forEach(suggestion => {
+        const suggestionCard = document.createElement('div');
+        suggestionCard.classList.add('suggestion-card');
+        
+        if (suggestion.logo) {
+          const img = document.createElement('img');
+          img.src = suggestion.logo;
+          img.alt = `${suggestion.name} logo`;
+          suggestionCard.appendChild(img);
+        }
+        const name = document.createElement('h4');
+        name.textContent = suggestion.name;
+        suggestionCard.appendChild(name);
+
+        const url = document.createElement('p');
+        url.textContent = suggestion.url;
+        suggestionCard.appendChild(url);
+
+        list.appendChild(suggestionCard);
+      });
+    }
+
+    // Submit a new proxy suggestion
+    async function submitSuggestion() {
+      const name = document.getElementById('suggestionName').value;
+      const url = document.getElementById('suggestionUrl').value;
+      const logoFile = document.getElementById('suggestionLogo').files[0];
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('url', url);
+      if (logoFile) {
+        formData.append('logo', logoFile);
+      }
+
+      const res = await fetch('/api/suggested-proxies', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert('Proxy suggestion submitted!');
+        loadSuggestedProxies(); // Reload the list of suggested proxies
+      } else {
+        alert('Failed to submit proxy suggestion');
+      }
+    }
+
+    // Call the load functions on page load
+    window.onload = async () => {
+      await loadProxies();
+      await loadSuggestedProxies();
+    };
+  </script>
 </body>
 </html>

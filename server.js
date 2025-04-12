@@ -4,6 +4,7 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -18,6 +19,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve u
 const proxyFile = path.join(__dirname, 'data', 'proxies.json');
 const usageFile = path.join(__dirname, 'data', 'usage.json');
 const usersFile = path.join(__dirname, 'data', 'users.json');
+const suggestionsFile = path.join(__dirname, 'data', 'suggestions.json');  // New file for proxy suggestions
 
 // Multer setup for file uploads
 const upload = multer({ dest: 'uploads/' });
@@ -41,6 +43,14 @@ const readUsers = () => {
   return JSON.parse(fs.readFileSync(usersFile, 'utf8'));
 };
 const writeUsers = (data) => fs.writeFileSync(usersFile, JSON.stringify(data, null, 2));
+
+// Helper: Read/write proxy suggestions
+const readSuggestions = () => {
+  if (!fs.existsSync(suggestionsFile)) fs.writeFileSync(suggestionsFile, JSON.stringify([]));
+  return JSON.parse(fs.readFileSync(suggestionsFile, 'utf8'));
+};
+
+const writeSuggestions = (data) => fs.writeFileSync(suggestionsFile, JSON.stringify(data, null, 2));
 
 // Serve main page
 app.get('/', (req, res) => {
@@ -155,6 +165,47 @@ app.post('/api/launch', (req, res) => {
 app.get('/api/usage-stats', (req, res) => {
   const usage = readUsage();
   res.json(usage);  // Send back the usage stats
+});
+
+// 🚨 Suggested proxy routes
+// Get suggested proxies
+app.get('/api/suggested-proxies', verifyToken, (req, res) => {
+  const suggestions = readSuggestions();
+  res.json(suggestions);
+});
+
+// Approve a suggested proxy
+app.post('/api/approve-suggestion', verifyToken, (req, res) => {
+  const { name } = req.body;
+  const suggestions = readSuggestions();
+  const suggestion = suggestions.find(s => s.name === name);
+
+  if (!suggestion) {
+    return res.status(400).json({ success: false, message: 'Suggestion not found' });
+  }
+
+  // Add the suggestion to the actual proxies list
+  const proxies = readProxies();
+  proxies.push(suggestion);
+  writeProxies(proxies);
+
+  // Remove from suggestions after approval
+  const updatedSuggestions = suggestions.filter(s => s.name !== name);
+  writeSuggestions(updatedSuggestions);
+
+  res.json({ success: true, message: 'Proxy approved' });
+});
+
+// Reject a suggested proxy
+app.delete('/api/reject-suggestion', verifyToken, (req, res) => {
+  const { name } = req.body;
+  const suggestions = readSuggestions();
+  const updatedSuggestions = suggestions.filter(s => s.name !== name);
+
+  // Update suggestions file after rejecting
+  writeSuggestions(updatedSuggestions);
+
+  res.json({ success: true, message: 'Proxy suggestion rejected' });
 });
 
 // ✅ Start server

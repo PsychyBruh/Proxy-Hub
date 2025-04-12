@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
   loadTheme();
   await loadProxies(); // Load proxies only once during initial load
+  await loadSuggestedProxies(); // Load suggested proxies
 });
 
 // Fetch and display proxies in the grid
@@ -42,6 +43,49 @@ async function loadProxies() {
   }
 }
 
+// Fetch and display suggested proxies
+async function loadSuggestedProxies() {
+  try {
+    const res = await fetch('/api/suggested-proxies');
+    if (!res.ok) throw new Error('Failed to fetch suggested proxies');
+    
+    const suggestedProxies = await res.json();
+    const suggestedList = document.getElementById('suggestedProxiesList');
+    suggestedList.innerHTML = ''; // Clear the list first
+
+    suggestedProxies.forEach(({ name, url, logo }) => {
+      const card = document.createElement('div');
+      card.className = 'suggested-card';
+
+      // Create and append the logo (if available)
+      if (logo) {
+        const logoImg = document.createElement('img');
+        logoImg.src = logo;
+        logoImg.alt = `${name} logo`;
+        logoImg.className = 'suggested-card-logo';
+        card.appendChild(logoImg);
+      }
+
+      // Add the proxy name
+      const nameElement = document.createElement('div');
+      nameElement.className = 'suggested-card-name';
+      nameElement.textContent = name;
+      card.appendChild(nameElement);
+
+      // Add the proxy URL
+      const urlElement = document.createElement('p');
+      urlElement.textContent = url;
+      card.appendChild(urlElement);
+
+      // Append the card to the list
+      suggestedList.appendChild(card);
+    });
+  } catch (error) {
+    console.error('Error loading suggested proxies:', error);
+    alert('Error loading suggested proxies, please try again later.');
+  }
+}
+
 // Open proxy in a new window or cloaked mode
 function launchProxy(name, url) {
   const cloak = confirm(`Open ${name} in about:blank cloaking mode?`);
@@ -78,40 +122,38 @@ function loadTheme() {
   }
 }
 
-// Add a new proxy
-async function addProxy() {
-  const name = document.getElementById('newName').value;
-  const url = document.getElementById('newUrl').value;
-  const logo = document.getElementById('newLogo').value; // Add logo URL input
+// Add a new proxy suggestion
+async function submitSuggestion() {
+  const name = document.getElementById('suggestionName').value;
+  const url = document.getElementById('suggestionUrl').value;
+  const logoFile = document.getElementById('suggestionLogo').files[0];
 
-  // Validate inputs
-  if (!name || !url) {
-    alert('Please provide both a name and a URL for the proxy.');
-    return;
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('url', url);
+  if (logoFile) {
+    formData.append('logo', logoFile);
   }
 
   try {
-    // Add proxy data including the logo to the server
-    const res = await fetch('/api/proxies', {
+    const res = await fetch('/api/suggested-proxies', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, url, logo }) // Send logo along with other details
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}` // Ensure JWT is included
+      },
+      body: formData
     });
 
-    if (!res.ok) throw new Error('Failed to add proxy');
-    
-    // Clear the inputs after adding
-    document.getElementById('newName').value = '';
-    document.getElementById('newUrl').value = '';
-    document.getElementById('newLogo').value = ''; // Clear logo input as well
-
-    // Dynamically add the new proxy to the list without reloading the entire list
-    const newProxy = { name, url, logo };
-    displayProxy(newProxy);
-
+    const data = await res.json();
+    if (data.success) {
+      alert('Proxy suggestion submitted!');
+      await loadSuggestedProxies(); // Reload the list of suggested proxies
+    } else {
+      alert('Failed to submit proxy suggestion');
+    }
   } catch (error) {
-    console.error('Error adding proxy:', error);
-    alert('Error adding proxy, please try again later.');
+    console.error('Error submitting suggestion:', error);
+    alert('Error submitting suggestion, please try again later.');
   }
 }
 

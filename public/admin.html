@@ -31,6 +31,10 @@
       <input id="newUrl" placeholder="Proxy URL" required><br>
       <input type="file" id="newLogo" placeholder="Proxy Logo" accept="image/*"><br>
       <button onclick="addProxy()">Add Proxy</button>
+
+      <!-- Proxy Suggestions Section -->
+      <h3>Suggested Proxies</h3>
+      <ul id="suggestedProxies"></ul>
     </div>
   </div>
 
@@ -54,6 +58,7 @@
         document.getElementById('adminPanel').style.display = 'block';
         loadProxies();
         loadUsageStats();
+        loadSuggestedProxies();
       } else {
         alert('Invalid credentials');
       }
@@ -150,13 +155,74 @@
       loadUsageStats();
     }
 
-   function goHome() {
-  // Clear token and redirect to homepage
-  authToken = '';
-  isLoggedIn = false;
-  window.location.href = '/index.html';
-}
+    // Function to load suggested proxies
+    async function loadSuggestedProxies() {
+      try {
+        const res = await fetch('/api/suggested-proxies', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
 
+        if (!res.ok) {
+          console.error('Failed to load suggested proxies');
+          return;
+        }
+
+        const suggestions = await res.json();
+        const list = document.getElementById('suggestedProxies');
+        list.innerHTML = '';
+
+        suggestions.forEach(suggestion => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <strong>${suggestion.name}</strong><br>
+            URL: <a href="${suggestion.url}" target="_blank">${suggestion.url}</a><br>
+            Date: ${suggestion.date}<br>
+            ${suggestion.logo ? `<img src="${suggestion.logo}" class="proxy-logo" />` : ''}
+            <button onclick="approveSuggestion('${suggestion.name}')">Approve</button>
+            <button onclick="rejectSuggestion('${suggestion.name}')">Reject</button>
+          `;
+          list.appendChild(li);
+        });
+      } catch (err) {
+        console.error('Error loading suggested proxies:', err);
+      }
+    }
+
+    // Function to approve a suggestion
+    async function approveSuggestion(name) {
+      await fetch('/api/approve-suggestion', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ name })
+      });
+      loadSuggestedProxies();
+      loadProxies();
+    }
+
+    // Function to reject a suggestion
+    async function rejectSuggestion(name) {
+      await fetch('/api/reject-suggestion', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ name })
+      });
+      loadSuggestedProxies();
+    }
+
+    function goHome() {
+      // Clear token and redirect to homepage
+      authToken = '';
+      isLoggedIn = false;
+      window.location.href = '/index.html';
+    }
 
     document.getElementById('loginButton').addEventListener('click', login);
   </script>
