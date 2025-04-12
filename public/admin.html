@@ -8,20 +8,26 @@
 <body>
   <div class="container">
     <h1>Admin Panel</h1>
-    <div id="loginForm">
-      <input id="username" placeholder="Username"><br>
-      <input id="password" type="password" placeholder="Password"><br>
+    <div id="loginForm" class="login-form">
+      <h2>Login</h2>
+      <input id="username" placeholder="Username" required><br>
+      <input id="password" type="password" placeholder="Password" required><br>
       <button onclick="login()">Login</button>
     </div>
 
     <div id="adminPanel" style="display:none;">
-      <h3>Proxies</h3>
+      <h2>Manage Proxies</h2>
+      <h3>Existing Proxies</h3>
       <ul id="proxyList"></ul>
-      <input id="newName" placeholder="Proxy Name">
-      <input id="newUrl" placeholder="Proxy URL">
+      
+      <h3>Add New Proxy</h3>
+      <input id="newName" placeholder="Proxy Name" required><br>
+      <input id="newUrl" placeholder="Proxy URL" required><br>
+      <input id="newLogo" placeholder="Proxy Logo URL (optional)"><br>
       <button onclick="addProxy()">Add Proxy</button>
     </div>
   </div>
+
   <script>
     let isLoggedIn = false;
 
@@ -51,7 +57,18 @@
       list.innerHTML = '';
       proxies.forEach(proxy => {
         const li = document.createElement('li');
+        
+        // Add logo if available
+        if (proxy.logo) {
+          const img = document.createElement('img');
+          img.src = proxy.logo;
+          img.alt = `${proxy.name} logo`;
+          img.classList.add('proxy-logo');
+          li.appendChild(img);
+        }
+        
         li.textContent = `${proxy.name} - ${proxy.url}`;
+        
         const btn = document.createElement('button');
         btn.textContent = 'Remove';
         btn.onclick = () => removeProxy(proxy.name);
@@ -63,12 +80,18 @@
     async function addProxy() {
       const name = document.getElementById('newName').value;
       const url = document.getElementById('newUrl').value;
+      const logo = document.getElementById('newLogo').value || null;
+      
       await fetch('/api/proxies', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, url })
+        body: JSON.stringify({ name, url, logo })
       });
       loadProxies();
+      // Clear the input fields after adding proxy
+      document.getElementById('newName').value = '';
+      document.getElementById('newUrl').value = '';
+      document.getElementById('newLogo').value = '';
     }
 
     async function removeProxy(name) {

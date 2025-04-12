@@ -6,13 +6,16 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Top Bar -->
   <div class="top-bar">
     <h1>🌐 Proxy Hub</h1>
-    <div>
-      <button onclick="toggleTheme()">Toggle Theme</button>
-      <a href="/admin.html">Admin</a>
+    <div class="top-bar-right">
+      <button onclick="toggleTheme()" class="theme-toggle-btn">Toggle Theme</button>
+      <a href="/admin.html" class="admin-link">Admin</a>
     </div>
   </div>
+
+  <!-- Proxy List -->
   <div class="card-grid" id="proxyList"></div>
 
   <script src="script.js"></script>
