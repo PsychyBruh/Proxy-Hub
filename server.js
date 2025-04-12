@@ -4,7 +4,6 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
-const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -70,21 +69,16 @@ app.post('/register', async (req, res) => {
   res.json({ success: true, message: 'User registered' });
 });
 
-// 🔐 Login route (uses users.json)
-app.post('/login', async (req, res) => {
+// 🔐 Login route (direct password comparison with .env)
+app.post('/login', (req, res) => {
   const { username, password } = req.body;
-  const users = readUsers();
-  const user = users.find(u => u.username === username);
 
-  if (!user) {
+  // Check if username is 'admin' and if password matches the one in the .env file
+  if (username !== 'admin' || password !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 
-  const passwordMatch = await bcrypt.compare(password, user.password);
-  if (!passwordMatch) {
-    return res.status(401).json({ success: false, message: 'Invalid credentials' });
-  }
-
+  // If credentials are valid, generate a JWT token
   const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
   res.json({ success: true, token });
 });
