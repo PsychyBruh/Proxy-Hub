@@ -1,137 +1,135 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Proxy Hub</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌐 Proxy Hub</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Top Bar -->
-  <div class="top-bar">
-    <h1>🌐 Proxy Hub</h1>
-    <div class="top-bar-right">
-      <button onclick="toggleTheme()" class="theme-toggle-btn">Toggle Theme</button>
-      <a href="/admin.html" class="admin-link">Admin</a>
-    </div>
-  </div>
+    <!-- Main Content -->
+    <header>
+        <h1>🌐 Proxy Hub</h1>
+        <button id="toggleTheme">Toggle Theme</button>
+    </header>
 
-  <!-- Proxy List -->
-  <div class="card-grid" id="proxyList"></div>
+    <section id="proxies">
+        <h2>Available Proxies</h2>
+        <ul id="proxyList">
+            <!-- Proxy list will be dynamically loaded here -->
+        </ul>
+    </section>
 
-  <!-- Proxy Suggestion Form -->
-  <div class="suggestion-form">
-    <h2>Suggest a Proxy</h2>
-    <input type="text" id="suggestionName" placeholder="Proxy Name" required>
-    <input type="url" id="suggestionUrl" placeholder="Proxy URL" required>
-    <input type="file" id="suggestionLogo" accept="image/*" placeholder="Proxy Logo">
-    <button onclick="submitSuggestion()">Submit Suggestion</button>
-  </div>
+    <!-- Suggest a Proxy Section -->
+    <section id="suggestProxy" class="suggestion-form">
+        <h2>Suggest a Proxy</h2>
+        <form id="proxyForm">
+            <label for="proxyName">Proxy Name:</label>
+            <input type="text" id="proxyName" name="proxyName" required>
 
-  <!-- Suggested Proxies Section -->
-  <h2>Suggested Proxies</h2>
-  <div id="suggestedProxiesList">
-    <!-- Suggested proxies will be loaded here -->
-  </div>
+            <label for="proxyURL">Proxy URL:</label>
+            <input type="url" id="proxyURL" name="proxyURL" required>
 
-  <script src="script.js"></script>
+            <label for="proxyLogo">Logo (Optional):</label>
+            <input type="file" id="proxyLogo" name="proxyLogo">
 
-  <script>
-    // Fetch and display existing proxies
-    async function loadProxies() {
-      const res = await fetch('/api/proxies');
-      const proxies = await res.json();
-      const list = document.getElementById('proxyList');
-      list.innerHTML = '';
-      proxies.forEach(proxy => {
-        const card = document.createElement('div');
-        card.classList.add('card');
-        if (proxy.logo) {
-          const img = document.createElement('img');
-          img.src = proxy.logo;
-          img.alt = `${proxy.name} logo`;
-          card.appendChild(img);
+            <button type="submit">Submit Suggestion</button>
+        </form>
+    </section>
+
+    <!-- Hidden section for Suggested Proxies (only for admins) -->
+    <section id="suggestedProxies" class="admin-only">
+        <h2>Suggested Proxies</h2>
+        <ul id="suggestedProxyList">
+            <!-- Suggested proxies will be dynamically loaded here -->
+        </ul>
+    </section>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Function to load proxies from API and display them
+        function loadProxies() {
+            $.get('/api/proxies', function(proxies) {
+                const proxyList = $('#proxyList');
+                proxyList.empty(); // Clear previous proxies
+                proxies.forEach(proxy => {
+                    proxyList.append(`<li><a href="${proxy.url}" target="_blank">${proxy.name}</a></li>`);
+                });
+            });
         }
-        const name = document.createElement('h3');
-        name.textContent = proxy.name;
-        card.appendChild(name);
 
-        const url = document.createElement('p');
-        url.textContent = proxy.url;
-        card.appendChild(url);
+        // Handle theme toggle
+        $('#toggleTheme').click(function() {
+            document.body.classList.toggle('dark-theme');
+        });
 
-        list.appendChild(card);
-      });
-    }
+        // Handle Proxy Suggestion Form Submission
+        $('#proxyForm').submit(function(event) {
+            event.preventDefault();
+            
+            const proxyName = $('#proxyName').val();
+            const proxyURL = $('#proxyURL').val();
+            const proxyLogo = $('#proxyLogo')[0].files[0]; // Get file
 
-    // Fetch and display suggested proxies
-    async function loadSuggestedProxies() {
-      const res = await fetch('/api/suggested-proxies', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            const formData = new FormData();
+            formData.append('name', proxyName);
+            formData.append('url', proxyURL);
+            if (proxyLogo) {
+                formData.append('logo', proxyLogo);
+            }
+
+            $.ajax({
+                url: '/api/submit-suggestion',  // Adjust endpoint as per your backend
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function(response) {
+                    alert('Suggestion submitted successfully!');
+                    $('#proxyForm')[0].reset(); // Clear form
+                },
+                error: function() {
+                    alert('Failed to submit suggestion. Please try again.');
+                }
+            });
+        });
+
+        // Optionally, only show the suggested proxies to admins
+        function loadSuggestedProxies() {
+            $.get('/api/suggested-proxies', function(suggestedProxies) {
+                const suggestedProxyList = $('#suggestedProxyList');
+                suggestedProxyList.empty(); // Clear previous suggestions
+                suggestedProxies.forEach(suggestion => {
+                    suggestedProxyList.append(`<li>${suggestion.name} - <button class="approve-btn" data-name="${suggestion.name}">Approve</button> <button class="reject-btn" data-name="${suggestion.name}">Reject</button></li>`);
+                });
+
+                // Admin approve/reject functionality
+                $('.approve-btn').click(function() {
+                    const name = $(this).data('name');
+                    $.post('/api/approve-suggestion', { name }, function() {
+                        alert('Proxy approved!');
+                        loadSuggestedProxies(); // Reload the suggested proxies list
+                    });
+                });
+
+                $('.reject-btn').click(function() {
+                    const name = $(this).data('name');
+                    $.ajax({
+                        url: '/api/reject-suggestion',
+                        type: 'DELETE',
+                        data: { name },
+                        success: function() {
+                            alert('Proxy suggestion rejected.');
+                            loadSuggestedProxies(); // Reload the suggested proxies list
+                        }
+                    });
+                });
+            });
         }
-      });
-      const suggestions = await res.json();
-      const list = document.getElementById('suggestedProxiesList');
-      list.innerHTML = '';
 
-      suggestions.forEach(suggestion => {
-        const suggestionCard = document.createElement('div');
-        suggestionCard.classList.add('suggestion-card');
-        
-        if (suggestion.logo) {
-          const img = document.createElement('img');
-          img.src = suggestion.logo;
-          img.alt = `${suggestion.name} logo`;
-          suggestionCard.appendChild(img);
-        }
-        const name = document.createElement('h4');
-        name.textContent = suggestion.name;
-        suggestionCard.appendChild(name);
-
-        const url = document.createElement('p');
-        url.textContent = suggestion.url;
-        suggestionCard.appendChild(url);
-
-        list.appendChild(suggestionCard);
-      });
-    }
-
-    // Submit a new proxy suggestion
-    async function submitSuggestion() {
-      const name = document.getElementById('suggestionName').value;
-      const url = document.getElementById('suggestionUrl').value;
-      const logoFile = document.getElementById('suggestionLogo').files[0];
-
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('url', url);
-      if (logoFile) {
-        formData.append('logo', logoFile);
-      }
-
-      const res = await fetch('/api/suggested-proxies', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: formData
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        alert('Proxy suggestion submitted!');
-        loadSuggestedProxies(); // Reload the list of suggested proxies
-      } else {
-        alert('Failed to submit proxy suggestion');
-      }
-    }
-
-    // Call the load functions on page load
-    window.onload = async () => {
-      await loadProxies();
-      await loadSuggestedProxies();
-    };
-  </script>
+        // Load proxies and suggested proxies
+        loadProxies();
+        loadSuggestedProxies(); // This will be hidden unless the user is an admin
+    </script>
 </body>
 </html>
