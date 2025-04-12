@@ -29,101 +29,91 @@
   </div>
 
   <script>
-    let isLoggedIn = false;
-    let authToken = '';
+  let isLoggedIn = false;
+  let authToken = '';
 
-    async function login() {
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const data = await res.json();
-      if (data.success) {
-        authToken = data.token;  // Save the JWT token
-        isLoggedIn = true;
-        document.getElementById('loginForm').style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'block';
-        loadProxies();
-      } else {
-        alert('Invalid credentials');
+  async function login() {
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const res = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      authToken = data.token;  // Save the JWT token
+      isLoggedIn = true;
+      document.getElementById('loginForm').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+      loadProxies();
+    } else {
+      alert('Invalid credentials');
+    }
+  }
+
+  async function loadProxies() {
+    const res = await fetch('/api/proxies');
+    const proxies = await res.json();
+    const list = document.getElementById('proxyList');
+    list.innerHTML = '';
+    proxies.forEach(proxy => {
+      const li = document.createElement('li');
+      if (proxy.logo) {
+        const img = document.createElement('img');
+        img.src = proxy.logo;
+        img.alt = `${proxy.name} logo`;
+        img.classList.add('proxy-logo');
+        li.appendChild(img);
       }
+      li.textContent = `${proxy.name} - ${proxy.url}`;
+      const btn = document.createElement('button');
+      btn.textContent = 'Remove';
+      btn.onclick = () => removeProxy(proxy.name);
+      li.appendChild(btn);
+      list.appendChild(li);
+    });
+  }
+
+  async function addProxy() {
+    const name = document.getElementById('newName').value;
+    const url = document.getElementById('newUrl').value;
+    const logoFile = document.getElementById('newLogo').files[0];
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('url', url);
+    if (logoFile) {
+      formData.append('logo', logoFile);
     }
 
-    async function loadProxies() {
-      const res = await fetch('/api/proxies');
-      const proxies = await res.json();
-      const list = document.getElementById('proxyList');
-      list.innerHTML = '';
-      proxies.forEach(proxy => {
-        const li = document.createElement('li');
-        
-        // Add logo if available
-        if (proxy.logo) {
-          const img = document.createElement('img');
-          img.src = proxy.logo;
-          img.alt = `${proxy.name} logo`;
-          img.classList.add('proxy-logo');
-          li.appendChild(img);
-        }
-        
-        li.textContent = `${proxy.name} - ${proxy.url}`;
-        
-        const btn = document.createElement('button');
-        btn.textContent = 'Remove';
-        btn.onclick = () => removeProxy(proxy.name);
-        li.appendChild(btn);
-        list.appendChild(li);
-      });
-    }
+    const res = await fetch('/api/proxies', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` },
+      body: formData
+    });
 
-    async function addProxy() {
-      const name = document.getElementById('newName').value;
-      const url = document.getElementById('newUrl').value;
-      const logoFile = document.getElementById('newLogo').files[0];
-      
-      const formData = new FormData();
-      formData.append('name', name);
-      formData.append('url', url);
-      if (logoFile) {
-        formData.append('logo', logoFile);
-      }
-
-      const res = await fetch('/api/proxies', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${authToken}` },
-        body: formData
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        loadProxies();
-      }
-
-      // Clear the input fields after adding proxy
-      document.getElementById('newName').value = '';
-      document.getElementById('newUrl').value = '';
-      document.getElementById('newLogo').value = '';
-    }
-
-    async function removeProxy(name) {
-      await fetch('/api/proxies', {
-        method: 'DELETE',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ name })
-      });
+    const data = await res.json();
+    if (data.success) {
       loadProxies();
     }
 
-    // Attach the login function after DOM content is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('loginButton').addEventListener('click', login);
+    document.getElementById('newName').value = '';
+    document.getElementById('newUrl').value = '';
+    document.getElementById('newLogo').value = '';
+  }
+
+  async function removeProxy(name) {
+    await fetch('/api/proxies', {
+      method: 'DELETE',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ name })
     });
-  </script>
-</body>
-</html>
+    loadProxies();
+  }
+
+  // 🛠️ Fix is here:
+  document.getElementById('loginButton').addEventListener('click', login);
+</script>
