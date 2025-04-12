@@ -12,7 +12,7 @@
       <h2>Login</h2>
       <input id="username" placeholder="Username" required><br>
       <input id="password" type="password" placeholder="Password" required><br>
-      <button onclick="login()">Login</button>
+      <button id="loginButton">Login</button>
     </div>
 
     <div id="adminPanel" style="display:none;">
@@ -119,6 +119,11 @@
       });
       loadProxies();
     }
+
+    // Attach the login function after DOM content is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('loginButton').addEventListener('click', login);
+    });
   </script>
 </body>
 </html>
