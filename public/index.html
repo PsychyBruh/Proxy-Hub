@@ -47,114 +47,120 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        // Function to load proxies from API and display them
-        function loadProxies() {
-            $.get('/api/proxies', function(proxies) {
-                const proxyList = $('#proxyList');
-                proxyList.empty(); // Clear previous proxies
-                proxies.forEach(proxy => {
-                    proxyList.append(`
-                        <li>
-                            <a href="#" class="proxy-link" data-url="${proxy.url}">${proxy.name}</a>
-                        </li>
-                    `);
+        $(document).ready(function() {
+            // Function to load proxies from API and display them
+            function loadProxies() {
+                $.get('/api/proxies', function(proxies) {
+                    const proxyList = $('#proxyList');
+                    proxyList.empty(); // Clear previous proxies
+                    proxies.forEach(proxy => {
+                        proxyList.append(`
+                            <li>
+                                <a href="#" class="proxy-link" data-url="${proxy.url}">${proxy.name}</a>
+                            </li>
+                        `);
+                    });
+
+                    // Add click handler to open proxies with confirmation
+                    $('.proxy-link').click(function(event) {
+                        event.preventDefault(); // Prevent default anchor behavior
+                        const proxyUrl = $(this).data('url');
+                        const confirmOpen = confirm(`Do you want to open ${proxyUrl}?`);
+
+                        // If confirmed, open the link in a new tab
+                        if (confirmOpen) {
+                            window.open(proxyUrl, '_blank');
+                        } else {
+                            // If user clicks "No", open the link in the same window
+                            window.location.href = proxyUrl;
+                        }
+                    });
+                }).fail(function() {
+                    alert('Failed to load proxies. Please try again.');
                 });
+            }
 
-                // Add click handler to open proxies with confirmation
-                $('.proxy-link').click(function(event) {
-                    event.preventDefault(); // Prevent default anchor behavior
-                    const proxyUrl = $(this).data('url');
-                    const confirmOpen = confirm(`Do you want to open ${proxyUrl}?`);
+            // Handle theme toggle
+            $('#toggleTheme').click(function() {
+                document.body.classList.toggle('dark-theme');
+            });
 
-                    // If confirmed, open the link in a new tab
-                    if (confirmOpen) {
-                        window.open(proxyUrl, '_blank');
-                    } else {
-                        // If user clicks "No", open the link in the same window
-                        window.location.href = proxyUrl;
+            // Handle Proxy Suggestion Form Submission
+            $('#proxyForm').submit(function(event) {
+                event.preventDefault();
+
+                const proxyName = $('#proxyName').val();
+                const proxyURL = $('#proxyURL').val();
+                const proxyLogo = $('#proxyLogo')[0].files[0]; // Get file
+
+                const formData = new FormData();
+                formData.append('name', proxyName);
+                formData.append('url', proxyURL);
+                if (proxyLogo) {
+                    formData.append('logo', proxyLogo);
+                }
+
+                $.ajax({
+                    url: '/api/submit-suggestion',  // Adjust endpoint as per your backend
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function(response) {
+                        alert('Suggestion submitted successfully!');
+                        $('#proxyForm')[0].reset(); // Clear form
+                    },
+                    error: function() {
+                        alert('Failed to submit suggestion. Please try again.');
                     }
                 });
             });
-        }
 
-        // Handle theme toggle
-        $('#toggleTheme').click(function() {
-            document.body.classList.toggle('dark-theme');
-        });
+            // Optionally, only show the suggested proxies to admins
+            function loadSuggestedProxies() {
+                $.get('/api/suggested-proxies', function(suggestedProxies) {
+                    const suggestedProxyList = $('#suggestedProxyList');
+                    suggestedProxyList.empty(); // Clear previous suggestions
+                    suggestedProxies.forEach(suggestion => {
+                        suggestedProxyList.append(`
+                            <li>
+                                ${suggestion.name} - 
+                                <button class="approve-btn" data-name="${suggestion.name}">Approve</button>
+                                <button class="reject-btn" data-name="${suggestion.name}">Reject</button>
+                            </li>
+                        `);
+                    });
 
-        // Handle Proxy Suggestion Form Submission
-        $('#proxyForm').submit(function(event) {
-            event.preventDefault();
-            
-            const proxyName = $('#proxyName').val();
-            const proxyURL = $('#proxyURL').val();
-            const proxyLogo = $('#proxyLogo')[0].files[0]; // Get file
+                    // Admin approve/reject functionality
+                    $('.approve-btn').click(function() {
+                        const name = $(this).data('name');
+                        $.post('/api/approve-suggestion', { name }, function() {
+                            alert('Proxy approved!');
+                            loadSuggestedProxies(); // Reload the suggested proxies list
+                        });
+                    });
 
-            const formData = new FormData();
-            formData.append('name', proxyName);
-            formData.append('url', proxyURL);
-            if (proxyLogo) {
-                formData.append('logo', proxyLogo);
+                    $('.reject-btn').click(function() {
+                        const name = $(this).data('name');
+                        $.ajax({
+                            url: '/api/reject-suggestion',
+                            type: 'DELETE',
+                            data: { name },
+                            success: function() {
+                                alert('Proxy suggestion rejected.');
+                                loadSuggestedProxies(); // Reload the suggested proxies list
+                            }
+                        });
+                    });
+                }).fail(function() {
+                    alert('Failed to load suggested proxies.');
+                });
             }
 
-            $.ajax({
-                url: '/api/submit-suggestion',  // Adjust endpoint as per your backend
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function(response) {
-                    alert('Suggestion submitted successfully!');
-                    $('#proxyForm')[0].reset(); // Clear form
-                },
-                error: function() {
-                    alert('Failed to submit suggestion. Please try again.');
-                }
-            });
+            // Load proxies and suggested proxies
+            loadProxies();
+            loadSuggestedProxies(); // This will be hidden unless the user is an admin
         });
-
-        // Optionally, only show the suggested proxies to admins
-        function loadSuggestedProxies() {
-            $.get('/api/suggested-proxies', function(suggestedProxies) {
-                const suggestedProxyList = $('#suggestedProxyList');
-                suggestedProxyList.empty(); // Clear previous suggestions
-                suggestedProxies.forEach(suggestion => {
-                    suggestedProxyList.append(`
-                        <li>
-                            ${suggestion.name} - 
-                            <button class="approve-btn" data-name="${suggestion.name}">Approve</button>
-                            <button class="reject-btn" data-name="${suggestion.name}">Reject</button>
-                        </li>
-                    `);
-                });
-
-                // Admin approve/reject functionality
-                $('.approve-btn').click(function() {
-                    const name = $(this).data('name');
-                    $.post('/api/approve-suggestion', { name }, function() {
-                        alert('Proxy approved!');
-                        loadSuggestedProxies(); // Reload the suggested proxies list
-                    });
-                });
-
-                $('.reject-btn').click(function() {
-                    const name = $(this).data('name');
-                    $.ajax({
-                        url: '/api/reject-suggestion',
-                        type: 'DELETE',
-                        data: { name },
-                        success: function() {
-                            alert('Proxy suggestion rejected.');
-                            loadSuggestedProxies(); // Reload the suggested proxies list
-                        }
-                    });
-                });
-            });
-        }
-
-        // Load proxies and suggested proxies
-        loadProxies();
-        loadSuggestedProxies(); // This will be hidden unless the user is an admin
     </script>
 </body>
 </html>
