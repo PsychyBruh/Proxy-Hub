@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Admin Panel</h1>
+    <div id="loginForm">
+      <input id="username" placeholder="Username"><br>
+      <input id="password" type="password" placeholder="Password"><br>
+      <button onclick="login()">Login</button>
+    </div>
+
+    <div id="adminPanel" style="display:none;">
+      <h3>Proxies</h3>
+      <ul id="proxyList"></ul>
+      <input id="newName" placeholder="Proxy Name">
+      <input id="newUrl" placeholder="Proxy URL">
+      <button onclick="addProxy()">Add Proxy</button>
+    </div>
+  </div>
+  <script>
+    let isLoggedIn = false;
+
+    async function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await res.json();
+      if (data.success) {
+        isLoggedIn = true;
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadProxies();
+      } else {
+        alert('Invalid credentials');
+      }
+    }
+
+    async function loadProxies() {
+      const res = await fetch('/api/proxies');
+      const proxies = await res.json();
+      const list = document.getElementById('proxyList');
+      list.innerHTML = '';
+      proxies.forEach(proxy => {
+        const li = document.createElement('li');
+        li.textContent = `${proxy.name} - ${proxy.url}`;
+        const btn = document.createElement('button');
+        btn.textContent = 'Remove';
+        btn.onclick = () => removeProxy(proxy.name);
+        li.appendChild(btn);
+        list.appendChild(li);
+      });
+    }
+
+    async function addProxy() {
+      const name = document.getElementById('newName').value;
+      const url = document.getElementById('newUrl').value;
+      await fetch('/api/proxies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, url })
+      });
+      loadProxies();
+    }
+
+    async function removeProxy(name) {
+      await fetch('/api/proxies', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      loadProxies();
+    }
+  </script>
+</body>
+</html>
