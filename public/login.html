@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>User Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>User Login</h1>
+    <input id="username" placeholder="Username" required><br>
+    <input id="password" type="password" placeholder="Password" required><br>
+    <button id="loginButton">Login</button>
+  </div>
+
+  <script>
+    async function loginUser() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('authToken', data.token);  // Store JWT in localStorage
+        alert('Login successful!');
+        window.location.href = '/'; // Redirect to the main page
+      } else {
+        alert('Invalid credentials');
+      }
+    }
+
+    document.getElementById('loginButton').addEventListener('click', loginUser);
+  </script>
+</body>
+</html>

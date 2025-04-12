@@ -1,0 +1,11 @@
+{
+    "username1": {
+      "password": "hashedpassword1",
+      "recentProxies": ["proxy1", "proxy2"]
+    },
+    "username2": {
+      "password": "hashedpassword2",
+      "recentProxies": ["proxy3", "proxy4"]
+    }
+  }
+  
