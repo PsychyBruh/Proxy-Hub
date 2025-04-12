@@ -8,6 +8,7 @@
 <body>
   <div class="container">
     <h1>Admin Panel</h1>
+
     <div id="loginForm" class="login-form">
       <h2>Login</h2>
       <input id="username" placeholder="Username" required><br>
@@ -16,7 +17,9 @@
     </div>
 
     <div id="adminPanel" style="display:none;">
+      <button onclick="goHome()" style="float:right;">🏠 Home</button>
       <h2>Manage Proxies</h2>
+
       <h3>Existing Proxies</h3>
       <ul id="proxyList"></ul>
 
@@ -45,12 +48,12 @@
       });
       const data = await res.json();
       if (data.success) {
-        authToken = data.token;  // Save the JWT token
+        authToken = data.token;
         isLoggedIn = true;
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadProxies();
-        loadUsageStats();  // Load usage stats after login
+        loadUsageStats();
       } else {
         alert('Invalid credentials');
       }
@@ -80,15 +83,29 @@
     }
 
     async function loadUsageStats() {
-      const res = await fetch('/api/usage-stats');
-      const stats = await res.json();
-      const list = document.getElementById('usageStats');
-      list.innerHTML = ''; // Clear the stats list first
+      try {
+        const res = await fetch('/api/usage-stats', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
 
-      for (const proxyName in stats) {
-        const li = document.createElement('li');
-        li.textContent = `${proxyName}: ${stats[proxyName]} launches`;
-        list.appendChild(li);
+        if (!res.ok) {
+          console.error('Failed to load usage stats');
+          return;
+        }
+
+        const stats = await res.json();
+        const list = document.getElementById('usageStats');
+        list.innerHTML = '';
+
+        for (const proxyName in stats) {
+          const li = document.createElement('li');
+          li.textContent = `${proxyName}: ${stats[proxyName]} launches`;
+          list.appendChild(li);
+        }
+      } catch (err) {
+        console.error('Error fetching usage stats:', err);
       }
     }
 
@@ -112,7 +129,7 @@
       const data = await res.json();
       if (data.success) {
         loadProxies();
-        loadUsageStats();  // Refresh usage stats after adding a new proxy
+        loadUsageStats();
       }
 
       document.getElementById('newName').value = '';
@@ -123,15 +140,23 @@
     async function removeProxy(name) {
       await fetch('/api/proxies', {
         method: 'DELETE',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({ name })
       });
       loadProxies();
-      loadUsageStats();  // Refresh usage stats after removing a proxy
+      loadUsageStats();
     }
+
+   function goHome() {
+  // Clear token and redirect to homepage
+  authToken = '';
+  isLoggedIn = false;
+  window.location.href = '/index.html';
+}
+
 
     document.getElementById('loginButton').addEventListener('click', login);
   </script>
