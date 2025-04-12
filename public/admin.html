@@ -19,11 +19,14 @@
       <h2>Manage Proxies</h2>
       <h3>Existing Proxies</h3>
       <ul id="proxyList"></ul>
-      
+
+      <h3>Usage Stats</h3>
+      <ul id="usageStats"></ul>
+
       <h3>Add New Proxy</h3>
       <input id="newName" placeholder="Proxy Name" required><br>
       <input id="newUrl" placeholder="Proxy URL" required><br>
-      <input type="file" id="newLogo" accept="image/*"><br>
+      <input type="file" id="newLogo" placeholder="Proxy Logo" accept="image/*"><br>
       <button onclick="addProxy()">Add Proxy</button>
     </div>
   </div>
@@ -47,6 +50,7 @@
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadProxies();
+        loadUsageStats();  // Load usage stats after login
       } else {
         alert('Invalid credentials');
       }
@@ -75,6 +79,19 @@
       });
     }
 
+    async function loadUsageStats() {
+      const res = await fetch('/api/usage-stats');
+      const stats = await res.json();
+      const list = document.getElementById('usageStats');
+      list.innerHTML = ''; // Clear the stats list first
+
+      for (const proxyName in stats) {
+        const li = document.createElement('li');
+        li.textContent = `${proxyName}: ${stats[proxyName]} launches`;
+        list.appendChild(li);
+      }
+    }
+
     async function addProxy() {
       const name = document.getElementById('newName').value;
       const url = document.getElementById('newUrl').value;
@@ -95,6 +112,7 @@
       const data = await res.json();
       if (data.success) {
         loadProxies();
+        loadUsageStats();  // Refresh usage stats after adding a new proxy
       }
 
       document.getElementById('newName').value = '';
@@ -112,6 +130,7 @@
         body: JSON.stringify({ name })
       });
       loadProxies();
+      loadUsageStats();  // Refresh usage stats after removing a proxy
     }
 
     document.getElementById('loginButton').addEventListener('click', login);

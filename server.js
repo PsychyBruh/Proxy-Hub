@@ -28,7 +28,12 @@ const readProxies = () => JSON.parse(fs.readFileSync(proxyFile, 'utf8'));
 const writeProxies = (data) => fs.writeFileSync(proxyFile, JSON.stringify(data, null, 2));
 
 // Helper: Read/write usage
-const readUsage = () => JSON.parse(fs.readFileSync(usageFile, 'utf8'));
+const readUsage = () => {
+  if (!fs.existsSync(usageFile)) {
+    fs.writeFileSync(usageFile, JSON.stringify({})); // Create an empty usage file if it doesn't exist
+  }
+  return JSON.parse(fs.readFileSync(usageFile, 'utf8'));
+};
 const writeUsage = (data) => fs.writeFileSync(usageFile, JSON.stringify(data, null, 2));
 
 // Helper: Read/write users
@@ -115,6 +120,7 @@ app.post('/api/proxies', verifyToken, upload.single('logo'), (req, res) => {
   proxies.push(newProxy);
   writeProxies(proxies);
 
+  // Initialize usage count for new proxy
   const usage = readUsage();
   usage[name] = 0;
   writeUsage(usage);
@@ -138,6 +144,23 @@ app.delete('/api/proxies', verifyToken, (req, res) => {
   writeUsage(usage);
 
   res.json({ success: true });
+});
+
+// 🚀 Track proxy launch
+app.post('/api/launch', (req, res) => {
+  const { name } = req.body;
+  const usage = readUsage();
+  if (usage[name] !== undefined) {
+    usage[name]++;
+    writeUsage(usage);
+  }
+  res.json({ success: true });
+});
+
+// 📊 Get usage stats
+app.get('/api/usage-stats', (req, res) => {
+  const usage = readUsage();
+  res.json(usage);  // Send back the usage stats
 });
 
 // ✅ Start server
