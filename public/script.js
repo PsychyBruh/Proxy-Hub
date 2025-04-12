@@ -1,34 +1,48 @@
 document.addEventListener('DOMContentLoaded', async () => {
   loadTheme();
-  const res = await fetch('/api/proxies');
-  const proxies = await res.json();
-  const grid = document.getElementById('proxyList');
-
-  proxies.forEach(({ name, url, logo }) => {
-    const card = document.createElement('div');
-    card.className = 'card';
-
-    // Create and append the logo (if available)
-    if (logo) {
-      const logoImg = document.createElement('img');
-      logoImg.src = logo;
-      logoImg.alt = `${name} logo`;
-      logoImg.className = 'card-logo';
-      card.appendChild(logoImg);
-    }
-
-    // Add the proxy name and URL
-    const nameElement = document.createElement('div');
-    nameElement.className = 'card-name';
-    nameElement.textContent = name;
-    card.appendChild(nameElement);
-
-    // Add an event listener for clicking on the proxy
-    card.onclick = () => launchProxy(name, url);
-    grid.appendChild(card);
-  });
+  await loadProxies(); // Load proxies only once during initial load
 });
 
+// Fetch and display proxies in the grid
+async function loadProxies() {
+  try {
+    const res = await fetch('/api/proxies');
+    if (!res.ok) throw new Error('Failed to fetch proxies');
+    
+    const proxies = await res.json();
+    const grid = document.getElementById('proxyList');
+    grid.innerHTML = ''; // Clear the grid first
+
+    proxies.forEach(({ name, url, logo }) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      // Create and append the logo (if available)
+      if (logo) {
+        const logoImg = document.createElement('img');
+        logoImg.src = logo;
+        logoImg.alt = `${name} logo`;
+        logoImg.className = 'card-logo';
+        card.appendChild(logoImg);
+      }
+
+      // Add the proxy name
+      const nameElement = document.createElement('div');
+      nameElement.className = 'card-name';
+      nameElement.textContent = name;
+      card.appendChild(nameElement);
+
+      // Add an event listener for clicking on the proxy
+      card.onclick = () => launchProxy(name, url);
+      grid.appendChild(card);
+    });
+  } catch (error) {
+    console.error('Error loading proxies:', error);
+    alert('Error loading proxies, please try again later.');
+  }
+}
+
+// Open proxy in a new window or cloaked mode
 function launchProxy(name, url) {
   const cloak = confirm(`Open ${name} in about:blank cloaking mode?`);
   if (cloak) {
@@ -50,11 +64,13 @@ function launchProxy(name, url) {
   }
 }
 
+// Toggle light/dark theme and save to localStorage
 function toggleTheme() {
   document.body.classList.toggle('light');
   localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
 }
 
+// Load theme based on localStorage
 function loadTheme() {
   const theme = localStorage.getItem('theme');
   if (theme === 'light') {
@@ -62,53 +78,67 @@ function loadTheme() {
   }
 }
 
-// Function to add proxy (for admin panel or other parts)
+// Add a new proxy
 async function addProxy() {
   const name = document.getElementById('newName').value;
   const url = document.getElementById('newUrl').value;
   const logo = document.getElementById('newLogo').value; // Add logo URL input
 
-  // Add proxy data including the logo to the server
-  await fetch('/api/proxies', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, url, logo }) // Send logo along with other details
-  });
+  // Validate inputs
+  if (!name || !url) {
+    alert('Please provide both a name and a URL for the proxy.');
+    return;
+  }
 
-  // Clear the inputs after adding
-  document.getElementById('newName').value = '';
-  document.getElementById('newUrl').value = '';
-  document.getElementById('newLogo').value = ''; // Clear logo input as well
+  try {
+    // Add proxy data including the logo to the server
+    const res = await fetch('/api/proxies', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, url, logo }) // Send logo along with other details
+    });
 
-  // Reload proxies to reflect the newly added proxy
-  loadProxies();
+    if (!res.ok) throw new Error('Failed to add proxy');
+    
+    // Clear the inputs after adding
+    document.getElementById('newName').value = '';
+    document.getElementById('newUrl').value = '';
+    document.getElementById('newLogo').value = ''; // Clear logo input as well
+
+    // Dynamically add the new proxy to the list without reloading the entire list
+    const newProxy = { name, url, logo };
+    displayProxy(newProxy);
+
+  } catch (error) {
+    console.error('Error adding proxy:', error);
+    alert('Error adding proxy, please try again later.');
+  }
 }
 
-// Function to load proxies after adding/removing
-async function loadProxies() {
-  const res = await fetch('/api/proxies');
-  const proxies = await res.json();
+// Display a single proxy card (used when a new proxy is added)
+function displayProxy(proxy) {
+  const { name, url, logo } = proxy;
   const grid = document.getElementById('proxyList');
-  grid.innerHTML = ''; // Clear the grid first
+  
+  const card = document.createElement('div');
+  card.className = 'card';
 
-  proxies.forEach(({ name, url, logo }) => {
-    const card = document.createElement('div');
-    card.className = 'card';
+  // Create and append the logo (if available)
+  if (logo) {
+    const logoImg = document.createElement('img');
+    logoImg.src = logo;
+    logoImg.alt = `${name} logo`;
+    logoImg.className = 'card-logo';
+    card.appendChild(logoImg);
+  }
 
-    if (logo) {
-      const logoImg = document.createElement('img');
-      logoImg.src = logo;
-      logoImg.alt = `${name} logo`;
-      logoImg.className = 'card-logo';
-      card.appendChild(logoImg);
-    }
+  // Add the proxy name
+  const nameElement = document.createElement('div');
+  nameElement.className = 'card-name';
+  nameElement.textContent = name;
+  card.appendChild(nameElement);
 
-    const nameElement = document.createElement('div');
-    nameElement.className = 'card-name';
-    nameElement.textContent = name;
-    card.appendChild(nameElement);
-
-    card.onclick = () => launchProxy(name, url);
-    grid.appendChild(card);
-  });
+  // Add an event listener for clicking on the proxy
+  card.onclick = () => launchProxy(name, url);
+  grid.appendChild(card);
 }
