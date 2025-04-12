@@ -74,7 +74,7 @@ app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
   // Check if username is 'admin' and if password matches the one in the .env file
-  if (username !== 'admin' || password !== process.env.ADMIN_PASSWORD) {
+  if (username !== process.env.ADMIN_USERNAME || password !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 
