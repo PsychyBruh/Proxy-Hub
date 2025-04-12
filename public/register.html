@@ -8,29 +8,45 @@
 <body>
   <div class="container">
     <h1>Register</h1>
-    <input id="username" placeholder="Username" required><br>
-    <input id="password" type="password" placeholder="Password" required><br>
-    <button onclick="register()">Register</button>
-    <p id="message"></p>
+    <div id="registerForm" class="register-form">
+      <h2>Create Account</h2>
+      <input id="username" placeholder="Username" required><br>
+      <input id="password" type="password" placeholder="Password" required><br>
+      <button id="registerButton">Register</button>
+    </div>
   </div>
 
   <script>
-    async function register() {
+    document.getElementById('registerButton').addEventListener('click', register);
+
+    async function register(event) {
+      event.preventDefault();  // Prevent form submission (page reload)
+      
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
 
+      // Check if username and password are provided
+      if (!username || !password) {
+        alert('Please fill out both fields');
+        return;
+      }
+
+      // Send the registration request
       const res = await fetch('/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
-      const msg = document.getElementById('message');
+
       if (data.success) {
-        msg.textContent = '✅ Registered successfully! You can now log in.';
+        alert('Registration successful');
+        window.location.href = '/login.html';  // Redirect to login after successful registration
       } else {
-        msg.textContent = `❌ ${data.message || 'Error registering user'}`;
+        alert(data.message || 'Registration failed');
       }
     }
   </script>
