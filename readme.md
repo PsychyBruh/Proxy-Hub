@@ -1,49 +1,45 @@
-# 🌐 Proxy Hub
-
+🌐 Proxy Hub
 Proxy Hub is a sleek, customizable dashboard for launching and managing web proxies from a single interface. With theme toggling, cloaking support, and an optional admin panel, it's designed for ease of use and future expansion.
 
----
+🚀 Features
+🌗 Light/Dark mode toggle
 
-## 🚀 Features
+🧩 Organized proxy cards with custom logos
 
-- 🌗 Light/Dark mode toggle
-- 🧩 Organized proxy cards with custom logos
-- 🪄 `about:blank` cloaking mode for stealthy browsing
-- 💾 Recent proxies saved using `localStorage`
-- 🔐 Optional admin panel with usage stats
-- 📤 Proxy suggestion form *(coming soon)*
-- ⚙️ Fully customizable frontend — no backend required
+🪄 about:blank cloaking mode for stealthy browsing
 
----
+💾 Recent proxies saved using localStorage
 
-## 📁 Project Structure
+🔐 Optional admin panel with usage stats
 
-proxy-hub/ ├── index.html # Main proxy dashboard ├── styles.css # All theming and layout styles ├── script.js # Logic for loading and launching proxies ├── suggestion.html # (Planned) Form to suggest new proxies ├── admin.html # Admin interface (optional) └── README.md # This file
+📤 Proxy suggestion form (coming soon)
 
-yaml
-Copy
-Edit
+⚙️ Fully customizable frontend — no backend required
 
----
+📁 Project Structure
 
-## 🛠️ Getting Started
+proxy-hub/
+├── index.html        # Main proxy dashboard
+├── styles.css        # All theming and layout styles
+├── script.js         # Logic for loading and launching proxies
+├── suggestion.html   # (Planned) Form to suggest new proxies
+├── admin.html        # Admin interface (optional)
+└── README.md         # This file
 
-### 1. Clone the Repository
+🛠️ Getting Started
+1. Clone the Repository
 
-```bash
 git clone https://github.com/yourusername/proxy-hub.git
 cd proxy-hub
+
 2. Launch It
-Just open index.html in your browser. That’s it!
+Simply open index.html in your browser. That's it!
 
-No server or backend required (unless integrating with APIs or admin features).
+No server or backend required (unless you're integrating with APIs or admin features).
 
-✨ Adding Proxies
+3. Adding Proxies
 If you're not using a backend, just edit the proxy array manually in script.js:
 
-js
-Copy
-Edit
 const proxies = [
   {
     name: 'Ultraviolet',
@@ -56,7 +52,8 @@ const proxies = [
     logo: 'https://yoursite.com/assets/rh.png'
   }
 ];
-Want to fetch from a backend? Create a /api/proxies route that returns JSON and update loadProxies() accordingly.
+
+Want to fetch from a backend? Create a /api/proxies route that returns JSON and update the loadProxies() function accordingly.
 
 🌐 Hosting Options
 You can host Proxy Hub anywhere that supports static files:
@@ -89,18 +86,14 @@ Approve/reject system for admins 🛠️
 Usage analytics (launch count, optional IP logging) 🛠️
 
 🙌 Credits
-Built with 💚 by Your Name
+Built with 💚 by Psychy
+
 Thanks to the open-source proxy community for inspiration.
 
 📜 License
 MIT License
 
-sql
-Copy
-Edit
-MIT License
-
-Copyright (c) 2025 Your Name
+Copyright (c) 2025 Psychy
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

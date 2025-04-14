@@ -23,6 +23,9 @@
       <h3>Existing Proxies</h3>
       <ul id="proxyList"></ul>
 
+      <h3>Suggested Proxies</h3>
+      <ul id="suggestedProxiesList"></ul>
+
       <h3>Usage Stats</h3>
       <ul id="usageStats"></ul>
 
@@ -53,6 +56,7 @@
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
         loadProxies();
+        loadSuggestedProxies();
         loadUsageStats();
       } else {
         alert('Invalid credentials');
@@ -80,6 +84,70 @@
         li.appendChild(btn);
         list.appendChild(li);
       });
+    }
+
+    async function loadSuggestedProxies() {
+      const res = await fetch('/api/suggested-proxies');
+      const proxies = await res.json();
+      const list = document.getElementById('suggestedProxiesList');
+      list.innerHTML = '';
+      proxies.forEach(proxy => {
+        const li = document.createElement('li');
+        li.appendChild(document.createTextNode(` ${proxy.name} - ${proxy.url} `));
+        if (proxy.logo) {
+          const img = document.createElement('img');
+          img.src = proxy.logo;
+          img.alt = `${proxy.name} logo`;
+          img.classList.add('proxy-logo');
+          li.appendChild(img);
+        }
+        const approveBtn = document.createElement('button');
+        approveBtn.textContent = 'Approve';
+        approveBtn.onclick = () => approveProxy(proxy);
+        li.appendChild(approveBtn);
+
+        const denyBtn = document.createElement('button');
+        denyBtn.textContent = 'Deny';
+        denyBtn.onclick = () => denyProxy(proxy);
+        li.appendChild(denyBtn);
+
+        list.appendChild(li);
+      });
+    }
+
+    async function approveProxy(proxy) {
+      const res = await fetch('/api/approve-proxy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ proxy })
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadProxies();
+        loadSuggestedProxies();
+      } else {
+        alert(data.message || 'Error approving proxy');
+      }
+    }
+
+    async function denyProxy(proxy) {
+      const res = await fetch('/api/deny-proxy', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ proxy })
+      });
+      const data = await res.json();
+      if (data.success) {
+        loadSuggestedProxies();
+      } else {
+        alert(data.message || 'Error denying proxy');
+      }
     }
 
     async function loadUsageStats() {

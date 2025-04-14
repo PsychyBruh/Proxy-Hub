@@ -19,6 +19,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const proxyFile = path.join(__dirname, 'data', 'proxies.json');
 const usageFile = path.join(__dirname, 'data', 'usage.json');
 const usersFile = path.join(__dirname, 'data', 'users.json');
+const suggestedProxiesFile = path.join(__dirname, 'data', 'suggestedProxies.json'); // New file for suggested proxies
 
 // Multer setup for file uploads
 const upload = multer({ dest: 'uploads/' });
@@ -26,6 +27,14 @@ const upload = multer({ dest: 'uploads/' });
 // Helpers
 const readProxies = () => JSON.parse(fs.readFileSync(proxyFile, 'utf8'));
 const writeProxies = (data) => fs.writeFileSync(proxyFile, JSON.stringify(data, null, 2));
+
+const readSuggestedProxies = () => {
+  if (!fs.existsSync(suggestedProxiesFile)) {
+    fs.writeFileSync(suggestedProxiesFile, JSON.stringify([])); // Initialize if the file doesn't exist
+  }
+  return JSON.parse(fs.readFileSync(suggestedProxiesFile, 'utf8'));
+};
+const writeSuggestedProxies = (data) => fs.writeFileSync(suggestedProxiesFile, JSON.stringify(data, null, 2));
 
 const readUsage = () => {
   if (!fs.existsSync(usageFile)) {
@@ -153,6 +162,63 @@ app.post('/api/launch', (req, res) => {
 app.get('/api/usage-stats', verifyToken, (req, res) => {
   const usage = readUsage();
   res.json(usage);
+});
+
+// 🌟 Get suggested proxies
+app.get('/api/suggested-proxies', verifyToken, (req, res) => {
+  const suggestedProxies = readSuggestedProxies();
+  res.json(suggestedProxies);
+});
+
+// ➕ Add a suggested proxy (user action)
+app.post('/api/suggest-proxy', (req, res) => {
+  const { name, url, logo } = req.body;
+
+  if (!name || !url) {
+    return res.status(400).json({ success: false, message: 'Name and URL are required' });
+  }
+
+  const suggestedProxies = readSuggestedProxies();
+  const newSuggestedProxy = { name, url, logo };
+  suggestedProxies.push(newSuggestedProxy);
+  writeSuggestedProxies(suggestedProxies);
+
+  res.json({ success: true, message: 'Proxy suggestion submitted' });
+});
+
+// ✅ Approve a suggested proxy (admin action)
+app.post('/api/approve-proxy', verifyToken, (req, res) => {
+  const { name, url, logo } = req.body;
+
+  const suggestedProxies = readSuggestedProxies();
+  const proxyIndex = suggestedProxies.findIndex(p => p.name === name);
+
+  if (proxyIndex === -1) return res.status(404).json({ success: false, message: 'Suggested proxy not found' });
+
+  const approvedProxy = suggestedProxies.splice(proxyIndex, 1)[0]; // Remove the suggested proxy from the list
+  writeSuggestedProxies(suggestedProxies);
+
+  // Add the approved proxy to the main list
+  const proxies = readProxies();
+  proxies.push(approvedProxy);
+  writeProxies(proxies);
+
+  res.json({ success: true, message: 'Proxy approved and added' });
+});
+
+// ❌ Deny a suggested proxy (admin action)
+app.delete('/api/deny-proxy', verifyToken, (req, res) => {
+  const { name } = req.body;
+
+  const suggestedProxies = readSuggestedProxies();
+  const proxyIndex = suggestedProxies.findIndex(p => p.name === name);
+
+  if (proxyIndex === -1) return res.status(404).json({ success: false, message: 'Suggested proxy not found' });
+
+  suggestedProxies.splice(proxyIndex, 1); // Remove the denied proxy from the list
+  writeSuggestedProxies(suggestedProxies);
+
+  res.json({ success: true, message: 'Proxy denied' });
 });
 
 // ✅ Start server
