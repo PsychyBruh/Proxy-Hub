@@ -93,6 +93,7 @@ button:hover, a:hover {
   height: auto;
   border-radius: 50%;
   margin-bottom: 1rem;
+  padding: 0.5rem; /* Added padding for better spacing */
   transition: transform 0.3s; /* Smooth scale transition */
 }
 
@@ -206,7 +207,8 @@ h1, h3 {
 
 .light .card:hover {
   background: #ddd;
-  transform: translateY(-5px); /* Maintain hover effect in light mode */
+  transform: translateY(-5px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2); /* Add subtle shadow in light mode */
 }
 
 .light #loginForm button {
@@ -217,8 +219,22 @@ h1, h3 {
   background-color: #45a049;
 }
 
+.light .card-name {
+  color: #333;  /* Darker text color for better readability */
+}
+
+/* Focus Styles for accessibility */
+button:focus, a:focus, input:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .top-bar {
+    padding: 0.5rem;
+  }
+
   .card-grid {
     flex-direction: column;
     align-items: center;
