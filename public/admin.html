@@ -97,34 +97,49 @@
     }
 
     // Load suggested proxies
-    async function loadSuggestedProxies() {
-      const res = await fetch('/api/suggested-proxies');
-      const proxies = await res.json();
-      const list = document.getElementById('suggestedProxiesList');
-      list.innerHTML = '';
-      proxies.forEach(proxy => {
-        const li = document.createElement('li');
-        li.appendChild(document.createTextNode(` ${proxy.name} - ${proxy.url} `));
-        if (proxy.logo) {
-          const img = document.createElement('img');
-          img.src = proxy.logo;
-          img.alt = `${proxy.name} logo`;
-          img.classList.add('proxy-logo');
-          li.appendChild(img);
-        }
-        const approveBtn = document.createElement('button');
-        approveBtn.textContent = 'Approve';
-        approveBtn.onclick = () => approveProxy(proxy);
-        li.appendChild(approveBtn);
+async function loadSuggestedProxies() {
+  try {
+    const res = await fetch('/api/suggested-proxies', {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
 
-        const denyBtn = document.createElement('button');
-        denyBtn.textContent = 'Deny';
-        denyBtn.onclick = () => denyProxy(proxy);
-        li.appendChild(denyBtn);
-
-        list.appendChild(li);
-      });
+    if (!res.ok) {
+      throw new Error('Failed to fetch suggested proxies');
     }
+
+    const proxies = await res.json();
+    const list = document.getElementById('suggestedProxiesList');
+    list.innerHTML = '';
+    proxies.forEach(proxy => {
+      const li = document.createElement('li');
+      li.appendChild(document.createTextNode(` ${proxy.name} - ${proxy.url} `));
+      if (proxy.logo) {
+        const img = document.createElement('img');
+        img.src = proxy.logo;
+        img.alt = `${proxy.name} logo`;
+        img.classList.add('proxy-logo');
+        li.appendChild(img);
+      }
+      const approveBtn = document.createElement('button');
+      approveBtn.textContent = 'Approve';
+      approveBtn.onclick = () => approveProxy(proxy);
+      li.appendChild(approveBtn);
+
+      const denyBtn = document.createElement('button');
+      denyBtn.textContent = 'Deny';
+      denyBtn.onclick = () => denyProxy(proxy);
+      li.appendChild(denyBtn);
+
+      list.appendChild(li);
+    });
+  } catch (err) {
+    alert('Error loading suggested proxies, please try again later.');
+    console.error(err);
+  }
+}
+
 
     // Load usage stats
     async function loadUsageStats() {
