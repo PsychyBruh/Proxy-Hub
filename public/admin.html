@@ -9,6 +9,7 @@
   <div class="container">
     <h1>Admin Panel</h1>
 
+    <!-- Login Form -->
     <div id="loginForm" class="login-form">
       <h2>Login</h2>
       <input id="username" placeholder="Username" required><br>
@@ -16,6 +17,7 @@
       <button id="loginButton">Login</button>
     </div>
 
+    <!-- Admin Panel (hidden until login) -->
     <div id="adminPanel" style="display:none;">
       <button onclick="goHome()" style="float:right;">🏠 Home</button>
       <h2>Manage Proxies</h2>
@@ -41,20 +43,27 @@
     let isLoggedIn = false;
     let authToken = '';
 
+    // Login function
     async function login() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
+
       const res = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
       const data = await res.json();
+
       if (data.success) {
         authToken = data.token;
         isLoggedIn = true;
+
+        // Hide the login form and show the admin panel
         document.getElementById('loginForm').style.display = 'none';
         document.getElementById('adminPanel').style.display = 'block';
+
+        // Load proxies, suggested proxies, and usage stats after login
         loadProxies();
         loadSuggestedProxies();
         loadUsageStats();
@@ -63,6 +72,7 @@
       }
     }
 
+    // Load proxies
     async function loadProxies() {
       const res = await fetch('/api/proxies');
       const proxies = await res.json();
@@ -86,6 +96,7 @@
       });
     }
 
+    // Load suggested proxies
     async function loadSuggestedProxies() {
       const res = await fetch('/api/suggested-proxies');
       const proxies = await res.json();
@@ -115,51 +126,13 @@
       });
     }
 
-    async function approveProxy(proxy) {
-      const res = await fetch('/api/approve-proxy', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ proxy })
-      });
-      const data = await res.json();
-      if (data.success) {
-        loadProxies();
-        loadSuggestedProxies();
-      } else {
-        alert(data.message || 'Error approving proxy');
-      }
-    }
-
-    async function denyProxy(proxy) {
-      const res = await fetch('/api/deny-proxy', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify({ proxy })
-      });
-      const data = await res.json();
-      if (data.success) {
-        loadSuggestedProxies();
-      } else {
-        alert(data.message || 'Error denying proxy');
-      }
-    }
-
+    // Load usage stats
     async function loadUsageStats() {
       const res = await fetch('/api/usage-stats', {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
       });
-      if (!res.ok) {
-        alert('Error loading usage stats');
-        return;
-      }
       const stats = await res.json();
       const list = document.getElementById('usageStats');
       list.innerHTML = '';
@@ -170,6 +143,7 @@
       }
     }
 
+    // Add new proxy
     async function addProxy() {
       const name = document.getElementById('newName').value;
       const url = document.getElementById('newUrl').value;
@@ -198,6 +172,7 @@
       document.getElementById('newLogo').value = '';
     }
 
+    // Remove proxy
     async function removeProxy(name) {
       await fetch('/api/proxies', {
         method: 'DELETE',
@@ -211,10 +186,11 @@
       loadUsageStats();
     }
 
+    // Log out function
     function goHome() {
       authToken = '';
       isLoggedIn = false;
-      window.location.href = '/index.html';
+      window.location.href = '/index.html'; // Redirect to the homepage
     }
 
     document.getElementById('loginButton').addEventListener('click', login);
