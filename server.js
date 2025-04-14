@@ -4,6 +4,7 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const multer = require('multer');
+const bcrypt = require('bcrypt');
 require('dotenv').config();
 
 const app = express();
@@ -12,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded logos
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // File paths
 const proxyFile = path.join(__dirname, 'data', 'proxies.json');
@@ -22,27 +23,25 @@ const usersFile = path.join(__dirname, 'data', 'users.json');
 // Multer setup for file uploads
 const upload = multer({ dest: 'uploads/' });
 
-// Helper: Read/write proxies
+// Helpers
 const readProxies = () => JSON.parse(fs.readFileSync(proxyFile, 'utf8'));
 const writeProxies = (data) => fs.writeFileSync(proxyFile, JSON.stringify(data, null, 2));
 
-// Helper: Read/write usage
 const readUsage = () => {
   if (!fs.existsSync(usageFile)) {
-    fs.writeFileSync(usageFile, JSON.stringify({})); // Create an empty usage file if it doesn't exist
+    fs.writeFileSync(usageFile, JSON.stringify({}));
   }
   return JSON.parse(fs.readFileSync(usageFile, 'utf8'));
 };
 const writeUsage = (data) => fs.writeFileSync(usageFile, JSON.stringify(data, null, 2));
 
-// Helper: Read/write users
 const readUsers = () => {
   if (!fs.existsSync(usersFile)) return [];
   return JSON.parse(fs.readFileSync(usersFile, 'utf8'));
 };
 const writeUsers = (data) => fs.writeFileSync(usersFile, JSON.stringify(data, null, 2));
 
-// Serve main page
+// Serve homepage
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/index.html'));
 });
@@ -57,28 +56,20 @@ app.post('/register', async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = {
-    username,
-    password: hashedPassword,
-    recentProxies: [] // For future personalized features
-  };
-
-  users.push(newUser);
+  users.push({ username, password: hashedPassword });
   writeUsers(users);
 
   res.json({ success: true, message: 'User registered' });
 });
 
-// 🔐 Login route (direct password comparison with .env)
+// 🔐 Login (checks against .env admin creds)
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
 
-  // Check if username is 'admin' and if password matches the one in the .env file
   if (username !== process.env.ADMIN_USERNAME || password !== process.env.ADMIN_PASSWORD) {
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
   }
 
-  // If credentials are valid, generate a JWT token
   const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
   res.json({ success: true, token });
 });
@@ -114,7 +105,6 @@ app.post('/api/proxies', verifyToken, upload.single('logo'), (req, res) => {
   proxies.push(newProxy);
   writeProxies(proxies);
 
-  // Initialize usage count for new proxy
   const usage = readUsage();
   usage[name] = 0;
   writeUsage(usage);
@@ -122,16 +112,24 @@ app.post('/api/proxies', verifyToken, upload.single('logo'), (req, res) => {
   res.json({ success: true, proxy: newProxy });
 });
 
-// ❌ Delete proxy (admin only)
+// ❌ Delete proxy and logo (admin only)
 app.delete('/api/proxies', verifyToken, (req, res) => {
   const { name } = req.body;
+  if (!name) return res.status(400).json({ success: false, message: 'Proxy name is required' });
 
-  if (!name) {
-    return res.status(400).json({ success: false, message: 'Proxy name is required' });
+  const proxies = readProxies();
+  const proxyToDelete = proxies.find(p => p.name === name);
+  if (!proxyToDelete) return res.status(404).json({ success: false, message: 'Proxy not found' });
+
+  // Delete logo file if exists
+  if (proxyToDelete.logo) {
+    const filePath = path.join(__dirname, proxyToDelete.logo);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }
 
-  const proxies = readProxies().filter(p => p.name !== name);
-  writeProxies(proxies);
+  // Remove proxy and update usage
+  const updatedProxies = proxies.filter(p => p.name !== name);
+  writeProxies(updatedProxies);
 
   const usage = readUsage();
   delete usage[name];
@@ -140,7 +138,7 @@ app.delete('/api/proxies', verifyToken, (req, res) => {
   res.json({ success: true });
 });
 
-// 🚀 Track proxy launch
+// 🚀 Track usage
 app.post('/api/launch', (req, res) => {
   const { name } = req.body;
   const usage = readUsage();
@@ -151,13 +149,13 @@ app.post('/api/launch', (req, res) => {
   res.json({ success: true });
 });
 
-// 📊 Get usage stats
-app.get('/api/usage-stats', (req, res) => {
+// 📊 Protected usage stats
+app.get('/api/usage-stats', verifyToken, (req, res) => {
   const usage = readUsage();
-  res.json(usage);  // Send back the usage stats
+  res.json(usage);
 });
 
 // ✅ Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });

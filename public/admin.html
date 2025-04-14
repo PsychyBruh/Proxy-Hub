@@ -29,7 +29,7 @@
       <h3>Add New Proxy</h3>
       <input id="newName" placeholder="Proxy Name" required><br>
       <input id="newUrl" placeholder="Proxy URL" required><br>
-      <input type="file" id="newLogo" placeholder="Proxy Logo" accept="image/*"><br>
+      <input type="file" id="newLogo" accept="image/*"><br>
       <button onclick="addProxy()">Add Proxy</button>
     </div>
   </div>
@@ -73,7 +73,7 @@
           img.classList.add('proxy-logo');
           li.appendChild(img);
         }
-        li.textContent = `${proxy.name} - ${proxy.url}`;
+        li.appendChild(document.createTextNode(` ${proxy.name} - ${proxy.url} `));
         const btn = document.createElement('button');
         btn.textContent = 'Remove';
         btn.onclick = () => removeProxy(proxy.name);
@@ -83,42 +83,33 @@
     }
 
     async function loadUsageStats() {
-      try {
-        const res = await fetch('/api/usage-stats', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-
-        if (!res.ok) {
-          console.error('Failed to load usage stats');
-          return;
+      const res = await fetch('/api/usage-stats', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
         }
-
-        const stats = await res.json();
-        const list = document.getElementById('usageStats');
-        list.innerHTML = '';
-
-        for (const proxyName in stats) {
-          const li = document.createElement('li');
-          li.textContent = `${proxyName}: ${stats[proxyName]} launches`;
-          list.appendChild(li);
-        }
-      } catch (err) {
-        console.error('Error fetching usage stats:', err);
+      });
+      if (!res.ok) {
+        alert('Error loading usage stats');
+        return;
+      }
+      const stats = await res.json();
+      const list = document.getElementById('usageStats');
+      list.innerHTML = '';
+      for (const name in stats) {
+        const li = document.createElement('li');
+        li.textContent = `${name}: ${stats[name]} launches`;
+        list.appendChild(li);
       }
     }
 
     async function addProxy() {
       const name = document.getElementById('newName').value;
       const url = document.getElementById('newUrl').value;
-      const logoFile = document.getElementById('newLogo').files[0];
+      const logo = document.getElementById('newLogo').files[0];
       const formData = new FormData();
       formData.append('name', name);
       formData.append('url', url);
-      if (logoFile) {
-        formData.append('logo', logoFile);
-      }
+      if (logo) formData.append('logo', logo);
 
       const res = await fetch('/api/proxies', {
         method: 'POST',
@@ -130,6 +121,8 @@
       if (data.success) {
         loadProxies();
         loadUsageStats();
+      } else {
+        alert(data.message || 'Error adding proxy');
       }
 
       document.getElementById('newName').value = '';
@@ -150,13 +143,11 @@
       loadUsageStats();
     }
 
-   function goHome() {
-  // Clear token and redirect to homepage
-  authToken = '';
-  isLoggedIn = false;
-  window.location.href = '/index.html';
-}
-
+    function goHome() {
+      authToken = '';
+      isLoggedIn = false;
+      window.location.href = '/index.html';
+    }
 
     document.getElementById('loginButton').addEventListener('click', login);
   </script>
