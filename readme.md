@@ -25,21 +25,21 @@ proxy-hub/
 ├── suggestion.html   # (Planned) Form to suggest new proxies
 ├── admin.html        # Admin interface (optional)
 └── README.md         # This file
-
 🛠️ Getting Started
 1. Clone the Repository
 
 git clone https://github.com/yourusername/proxy-hub.git
 cd proxy-hub
-
 2. Launch It
 Simply open index.html in your browser. That's it!
-
 No server or backend required (unless you're integrating with APIs or admin features).
 
 3. Adding Proxies
 If you're not using a backend, just edit the proxy array manually in script.js:
 
+js
+Copy
+Edit
 const proxies = [
   {
     name: 'Ultraviolet',
@@ -52,8 +52,8 @@ const proxies = [
     logo: 'https://yoursite.com/assets/rh.png'
   }
 ];
-
-Want to fetch from a backend? Create a /api/proxies route that returns JSON and update the loadProxies() function accordingly.
+Want to fetch from a backend?
+Create a /api/proxies route that returns JSON and update the loadProxies() function accordingly.
 
 🌐 Hosting Options
 You can host Proxy Hub anywhere that supports static files:
@@ -68,29 +68,29 @@ Cloudflare Pages
 
 Your own web server
 
-Note: You don't need Node.js, Python, or backend hosting unless you're adding advanced API features.
+💡 You don't need Node.js, Python, or backend hosting unless you're adding advanced API features.
 
 🧪 Planned Features
-Light/dark mode ✅
+✅ Light/Dark mode
 
-Cloaked proxy launching ✅
+✅ Cloaked proxy launching
 
-Recent proxy memory ✅
+✅ Recent proxy memory
 
-Admin panel ✅
+✅ Admin panel
 
-Proxy suggestion form 🛠️
+🛠️ Proxy suggestion form
 
-Approve/reject system for admins 🛠️
+🛠️ Approve/reject system for admins
 
-Usage analytics (launch count, optional IP logging) 🛠️
+🛠️ Usage analytics (launch count, optional IP logging)
 
 🙌 Credits
 Built with 💚 by Psychy
-
 Thanks to the open-source proxy community for inspiration.
 
 📜 License
+
 MIT License
 
 Copyright (c) 2025 Psychy
