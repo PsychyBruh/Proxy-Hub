@@ -1,147 +1,69 @@
-# 🌐 **Proxy Hub**
 
-**Proxy Hub** is a sleek, customizable dashboard for launching and managing web proxies from a single interface. With **theme toggling**, **cloaking support**, and an **optional admin panel**, it's designed for ease of use and future expansion.
+# Proxy Hub
 
----
+Proxy Hub is a web application that allows you to manage and access multiple proxies easily. The admin panel provides functionality to add and remove proxy backends. The proxies can be accessed from a public hub page.
 
-## 🚀 **Features**
+## Features
 
-- 🌗 **Light/Dark mode toggle**  
-- 🧩 **Organized proxy cards** with custom logos  
-- 🪄 **`about:blank` cloaking mode** for stealthy browsing  
-- 💾 **Recently used proxies** saved using `localStorage`  
-- 🔐 **Optional admin panel** with usage stats  
-- 📤 **Proxy suggestion form** *(coming soon)*  
-- ⚙️ **Fully customizable frontend** — no backend required
+- **Admin Panel**: 
+  - Add and remove proxy backends.
+  - Manage proxy settings (name, target URL, and prefix).
+  - Password protected admin access.
+  
+- **Public Hub Page**:
+  - List all available proxies with their logos.
+  - Access proxies with a simple click.
 
----
+## Installation
 
-## 📁 **Project Structure**
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/PsychyBruh/proxy-hub.git
+   cd proxy-hub
+   ```
 
-```
-proxy-hub/ 
-├── data # Directory for JSON's 
-    ├── proxies.json # Stores the Proxies that are added
-    ├── status.json  # Stores the current proxy status
-    ├── suggestedProxies.json # Stores the proxies that were suggested (Planned)
-├── public # Main Directory for HTML's and JS for HTML's
-    ├── index.html # Main proxy dashboard 
-    ├── styles.css # All theming and layout styles 
-    ├── script.js # Logic for loading and launching proxies 
-    ├── suggestion.html # (Planned) Form to suggest new proxies 
-    ├── admin.html # Admin interface (optional) 
-├── .gitignore
-├── Dockerfile
-├── package-lock.json
-├── package.json
-├── server.js
-└── README.md # This file
-```
----
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## 🛠️ **Getting Started**
+3. Create a `.env` file at the root of the project and add your admin password:
+   ```env
+   ADMIN_PASS=yourPasswordHere
+   ```
 
-### 1️⃣ Clone the Repository
+4. Run the application:
+   ```bash
+   npm start
+   ```
 
-```bash
-git clone https://github.com/PsychyBruh/proxy-hub.git
-cd proxy-hub
-npm start
+5. Access the application:
+   - **Public Hub**: `http://localhost:8080`
+   - **Admin Panel**: `http://localhost:8080/admin/login` (password required)
 
-OR 
-
-docker build -t proxyhub .
-
-docker run -d proxyhub
-```
-
- ### 2️⃣ Adding Proxies
-Manually edit the proxy array in proxies.json:
+## Folder Structure
 
 ```
-[
-    {
-      "name": "Emerald",
-      "url": "https://emeraldproxy.vercel.app"
-    },
-    {
-      "name": "Purplocity",
-      "url": "https://purplocity.vercel.app"
-    },
-    {
-      "name": "Void",
-      "url": "https://voidproxy.vercel.app"
-    }
-  ]
-  ```
---- 
-  ### 🌐 Hosting Options
-You can host Proxy Hub anywhere that supports static files:
-
-**GitHub Pages**
-
-**Vercel**
-
-**Netlify**
-
-**Cloudflare Pages**
-
-**Northflank**
-
-**Your own web server**
-
----
-
-## 🧪 Planned Features
-
-**✅ Light/Dark mode**
-
-**✅ Cloaked proxy launching**
-
-**✅ Recent proxy memory**
-
-**✅ Admin panel**
-
-**🛠️ Proxy suggestion form**
-
-**🛠️ Approve/reject system for admins**
-
-**🛠️ Usage analytics (launch count, optional IP logging)**
-
----
-
-# 🙌 Credits
-## Built with 💚 by Psychy
-## Thanks to the open-source proxy community for inspiration.
-
-
-# 📜 License
-
-## MIT License
-```
-Copyright (c) 2025 Psychy
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+.
+├── public/                  # Static files (e.g., logos)
+├── views/                   # EJS templates
+├── .env                     # Environment variables (password)
+├── .gitignore               # Git ignore file
+├── backend.json             # Stores proxy backend configuration
+├── server.js                # Main application logic
+├── package.json             # Project metadata and dependencies
+├── README.md                # Project documentation
 ```
 
+## Contributing
 
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature-branch`).
+3. Make your changes.
+4. Commit your changes (`git commit -am 'Add new feature'`).
+5. Push to the branch (`git push origin feature-branch`).
+6. Open a pull request.
 
+## License
 
-
-
+Distributed under the MIT License. See LICENSE for more information.

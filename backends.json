@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Void",
+    "target": "http://localhost:7070",
+    "prefix": "/void",
+    "logo": "/public/logos/1745956657544-Screenshot 2025-04-13 10.34.42 AM.png"
+  },
+  {
+    "name": "Emerald",
+    "target": "http://localhost:5613",
+    "prefix": "/emerald",
+    "logo": "/public/logos/1745956686120-emerald.png"
+  },
+  {
+    "name": "Purplocity",
+    "target": "http://localhost:8080",
+    "prefix": "/purplocity",
+    "logo": "/public/logos/1745956766575-hat-dev.svg"
+  }
+]

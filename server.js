@@ -1,227 +1,126 @@
-const express = require('express');
-const path = require('path');
 const fs = require('fs');
-const bodyParser = require('body-parser');
-const jwt = require('jsonwebtoken');
-const multer = require('multer');
-const bcrypt = require('bcrypt');
 require('dotenv').config();
+const path = require('path');
+const express = require('express');
+const session = require('express-session');
+const bodyParser = require('body-parser');
+const multer = require('multer');
+const { createProxyMiddleware } = require('http-proxy-middleware');
+const ejsLocals = require('ejs-locals');
+
+const APP_PORT = 8080;
+const ADMIN_PASS = process.env.ADMIN_PASS;
+
+const BACKENDS_FILE = path.join(__dirname, 'backends.json');
+let backends = [];
+
+if (fs.existsSync(BACKENDS_FILE)) {
+  backends = JSON.parse(fs.readFileSync(BACKENDS_FILE));
+} else {
+  backends = [
+    { name: 'void', target: 'http://localhost:7070', prefix: '/void', logo: '/public/logo.png' },
+    { name: 'emerald', target: 'http://localhost:5613', prefix: '/emerald', logo: '/public/logo.png' },
+    { name: 'purplocity', target: 'http://localhost:8080', prefix: '/purplocity', logo: '/public/logo.png' },
+  ];
+  fs.writeFileSync(BACKENDS_FILE, JSON.stringify(backends, null, 2));
+}
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// File upload setup
+const uploadDir = path.join(__dirname, 'public', 'logos');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-// File paths
-const proxyFile = path.join(__dirname, 'data', 'proxies.json');
-const usageFile = path.join(__dirname, 'data', 'usage.json');
-const usersFile = path.join(__dirname, 'data', 'users.json');
-const suggestedProxiesFile = path.join(__dirname, 'data', 'suggestedProxies.json'); // New file for suggested proxies
-
-// Multer setup for file uploads
-const upload = multer({ dest: 'uploads/' });
-
-// Helpers
-const readProxies = () => JSON.parse(fs.readFileSync(proxyFile, 'utf8'));
-const writeProxies = (data) => fs.writeFileSync(proxyFile, JSON.stringify(data, null, 2));
-
-const readSuggestedProxies = () => {
-  if (!fs.existsSync(suggestedProxiesFile)) {
-    fs.writeFileSync(suggestedProxiesFile, JSON.stringify([])); // Initialize if the file doesn't exist
-  }
-  return JSON.parse(fs.readFileSync(suggestedProxiesFile, 'utf8'));
-};
-const writeSuggestedProxies = (data) => fs.writeFileSync(suggestedProxiesFile, JSON.stringify(data, null, 2));
-
-const readUsage = () => {
-  if (!fs.existsSync(usageFile)) {
-    fs.writeFileSync(usageFile, JSON.stringify({}));
-  }
-  return JSON.parse(fs.readFileSync(usageFile, 'utf8'));
-};
-const writeUsage = (data) => fs.writeFileSync(usageFile, JSON.stringify(data, null, 2));
-
-const readUsers = () => {
-  if (!fs.existsSync(usersFile)) return [];
-  return JSON.parse(fs.readFileSync(usersFile, 'utf8'));
-};
-const writeUsers = (data) => fs.writeFileSync(usersFile, JSON.stringify(data, null, 2));
-
-// Serve homepage
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/index.html'));
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
+const upload = multer({ storage });
 
-// 👤 Register route
-app.post('/register', async (req, res) => {
-  const { username, password } = req.body;
-  const users = readUsers();
+// View engine setup
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.engine('ejs', ejsLocals);
 
-  if (users.find(u => u.username === username)) {
-    return res.status(400).json({ success: false, message: 'Username already exists' });
-  }
+app.use('/public', express.static(path.join(__dirname, 'public')));
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(session({
+  secret: 'a very secret key',
+  resave: false,
+  saveUninitialized: false,
+}));
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-  users.push({ username, password: hashedPassword });
-  writeUsers(users);
-
-  res.json({ success: true, message: 'User registered' });
-});
-
-// 🔐 Login (checks against .env admin creds)
-app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-
-  if (username !== process.env.ADMIN_USERNAME || password !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ success: false, message: 'Invalid credentials' });
-  }
-
-  const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  res.json({ success: true, token });
-});
-
-// ✅ JWT Middleware
-const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1];
-  if (!token) return res.status(403).json({ success: false, message: 'No token provided' });
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(403).json({ success: false, message: 'Invalid token' });
-    req.user = decoded;
-    next();
+function mountProxies() {
+  backends.forEach(b => {
+    app.use(
+      b.prefix,
+      createProxyMiddleware({
+        target: b.target,
+        changeOrigin: true,
+        pathRewrite: (pathReq) => pathReq.replace(new RegExp(`^${b.prefix}`), ''),
+      })
+    );
   });
-};
+}
+mountProxies();
 
-// 🌐 Get proxies
-app.get('/api/proxies', (req, res) => {
-  res.json(readProxies());
+app.get('/', (req, res) => {
+  res.render('index', {
+    title: 'Home',
+    backends
+  });
 });
 
-// ➕ Add proxy (admin only)
-app.post('/api/proxies', verifyToken, upload.single('logo'), (req, res) => {
-  const { name, url } = req.body;
-  const logo = req.file ? `/uploads/${req.file.filename}` : null;
-
-  if (!name || !url) {
-    return res.status(400).json({ success: false, message: 'Name and URL are required' });
+app.get('/admin/login', (req, res) => {
+  res.render('admin', {
+    title: 'Admin Login',
+    error: null,
+    backends,
+    loggedIn: !!req.session.admin
+  });
+});
+app.post('/admin/login', (req, res) => {
+  if (req.body.password === ADMIN_PASS) {
+    req.session.admin = true;
+    return res.redirect('/admin');
   }
-
-  const proxies = readProxies();
-  const newProxy = { name, url, logo };
-  proxies.push(newProxy);
-  writeProxies(proxies);
-
-  const usage = readUsage();
-  usage[name] = 0;
-  writeUsage(usage);
-
-  res.json({ success: true, proxy: newProxy });
+  res.render('admin', {
+    title: 'Admin Login',
+    error: 'Invalid password',
+    backends,
+    loggedIn: false
+  });
+});
+app.get('/admin/logout', (req, res) => {
+  req.session.destroy(() => { res.redirect('/'); });
 });
 
-// ❌ Delete proxy and logo (admin only)
-app.delete('/api/proxies', verifyToken, (req, res) => {
+app.get('/admin', (req, res) => {
+  if (!req.session.admin) return res.redirect('/admin/login');
+  res.render('admin', {
+    title: 'Admin Panel',
+    error: null,
+    backends,
+    loggedIn: true
+  });
+});
+app.post('/admin/add', upload.single('logo'), (req, res) => {
+  if (!req.session.admin) return res.redirect('/admin');
+  const { name, target, prefix } = req.body;
+  const logo = req.file ? `/public/logos/${req.file.filename}` : '/public/logo.png';
+  backends.push({ name, target, prefix, logo });
+  fs.writeFileSync(BACKENDS_FILE, JSON.stringify(backends, null, 2));
+  mountProxies();
+  res.redirect('/admin');
+});
+app.post('/admin/remove', (req, res) => {
+  if (!req.session.admin) return res.redirect('/admin');
   const { name } = req.body;
-  if (!name) return res.status(400).json({ success: false, message: 'Proxy name is required' });
-
-  const proxies = readProxies();
-  const proxyToDelete = proxies.find(p => p.name === name);
-  if (!proxyToDelete) return res.status(404).json({ success: false, message: 'Proxy not found' });
-
-  // Delete logo file if exists
-  if (proxyToDelete.logo) {
-    const filePath = path.join(__dirname, proxyToDelete.logo);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  }
-
-  // Remove proxy and update usage
-  const updatedProxies = proxies.filter(p => p.name !== name);
-  writeProxies(updatedProxies);
-
-  const usage = readUsage();
-  delete usage[name];
-  writeUsage(usage);
-
-  res.json({ success: true });
+  backends = backends.filter(b => b.name !== name);
+  fs.writeFileSync(BACKENDS_FILE, JSON.stringify(backends, null, 2));
+  res.redirect('/admin');
 });
 
-// 🚀 Track usage
-app.post('/api/launch', (req, res) => {
-  const { name } = req.body;
-  const usage = readUsage();
-  if (usage[name] !== undefined) {
-    usage[name]++;
-    writeUsage(usage);
-  }
-  res.json({ success: true });
-});
-
-// 📊 Protected usage stats
-app.get('/api/usage-stats', verifyToken, (req, res) => {
-  const usage = readUsage();
-  res.json(usage);
-});
-
-// 🌟 Get suggested proxies
-app.get('/api/suggested-proxies', verifyToken, (req, res) => {
-  const suggestedProxies = readSuggestedProxies();
-  res.json(suggestedProxies);
-});
-
-// ➕ Add a suggested proxy (user action)
-app.post('/api/suggest-proxy', (req, res) => {
-  const { name, url, logo } = req.body;
-
-  if (!name || !url) {
-    return res.status(400).json({ success: false, message: 'Name and URL are required' });
-  }
-
-  const suggestedProxies = readSuggestedProxies();
-  const newSuggestedProxy = { name, url, logo };
-  suggestedProxies.push(newSuggestedProxy);
-  writeSuggestedProxies(suggestedProxies);
-
-  res.json({ success: true, message: 'Proxy suggestion submitted' });
-});
-
-// ✅ Approve a suggested proxy (admin action)
-app.post('/api/approve-proxy', verifyToken, (req, res) => {
-  const { name, url, logo } = req.body;
-
-  const suggestedProxies = readSuggestedProxies();
-  const proxyIndex = suggestedProxies.findIndex(p => p.name === name);
-
-  if (proxyIndex === -1) return res.status(404).json({ success: false, message: 'Suggested proxy not found' });
-
-  const approvedProxy = suggestedProxies.splice(proxyIndex, 1)[0]; // Remove the suggested proxy from the list
-  writeSuggestedProxies(suggestedProxies);
-
-  // Add the approved proxy to the main list
-  const proxies = readProxies();
-  proxies.push(approvedProxy);
-  writeProxies(proxies);
-
-  res.json({ success: true, message: 'Proxy approved and added' });
-});
-
-// ❌ Deny a suggested proxy (admin action)
-app.delete('/api/deny-proxy', verifyToken, (req, res) => {
-  const { name } = req.body;
-
-  const suggestedProxies = readSuggestedProxies();
-  const proxyIndex = suggestedProxies.findIndex(p => p.name === name);
-
-  if (proxyIndex === -1) return res.status(404).json({ success: false, message: 'Suggested proxy not found' });
-
-  suggestedProxies.splice(proxyIndex, 1); // Remove the denied proxy from the list
-  writeSuggestedProxies(suggestedProxies);
-
-  res.json({ success: true, message: 'Proxy denied' });
-});
-
-// ✅ Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+app.listen(APP_PORT, () => {
+  console.log(`Proxy hub listening on http://localhost:${APP_PORT}`);
 });

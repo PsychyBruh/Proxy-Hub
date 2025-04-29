@@ -1,0 +1,11 @@
+<% layout('layout', { title: 'Proxy Hub' }) %>
+
+<div class="card-grid">
+  <% backends.forEach(b => { %>
+    <div class="card">
+      <img class="card-logo" src="<%= b.logo || '/public/logo.png' %>" alt="<%= b.name %> Logo" />
+      <div class="card-name"><%= b.name.charAt(0).toUpperCase() + b.name.slice(1) %></div>
+      <a href="<%= b.prefix %>/" target="_blank" class="button">Open</a>
+    </div>
+  <% }) %>
+</div>

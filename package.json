@@ -1,21 +1,33 @@
 {
   "name": "proxy-hub",
   "version": "1.0.0",
+  "description": "",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PsychyBruh/Proxy-Hub.git"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/PsychyBruh/Proxy-Hub/issues"
+  },
+  "homepage": "https://github.com/PsychyBruh/Proxy-Hub#readme",
   "dependencies": {
-    "bcrypt": "^5.1.1",
     "body-parser": "^2.2.0",
     "dotenv": "^16.5.0",
+    "ejs": "^3.1.10",
+    "ejs-layouts": "^0.0.1",
+    "ejs-locals": "^1.0.2",
     "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
+    "express-session": "^1.18.1",
+    "http-proxy-middleware": "^3.0.5",
     "multer": "^1.4.5-lts.2"
   }
 }
