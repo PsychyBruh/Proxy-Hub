@@ -19,9 +19,9 @@ if (fs.existsSync(BACKENDS_FILE)) {
   backends = JSON.parse(fs.readFileSync(BACKENDS_FILE));
 } else {
   backends = [
-    { name: 'void',      target: 'http://localhost:7070', prefix: '/void',      logo: '/public/logo.png' },
-    { name: 'emerald',   target: 'http://localhost:5613', prefix: '/emerald',   logo: '/public/logo.png' },
-    { name: 'purplocity',target: 'http://localhost:8080', prefix: '/purplocity',logo: '/public/logo.png' },
+    { name: 'void',      target: 'http://localhost:7070', prefix: '/void',       logo: '/public/logo.png' },
+    { name: 'emerald',   target: 'http://localhost:5613', prefix: '/emerald',    logo: '/public/logo.png' },
+    { name: 'purplocity',target: 'http://localhost:8080', prefix: '/purplocity', logo: '/public/logo.png' },
   ];
   fs.writeFileSync(BACKENDS_FILE, JSON.stringify(backends, null, 2));
 }
@@ -51,31 +51,49 @@ app.use(session({
   saveUninitialized: false,
 }));
 
-// Mount all proxies except Emerald
+// 1) Mount all proxies except Emerald
 function mountProxies() {
   backends.forEach(b => {
-    if (b.prefix === '/emerald') return; // skip emerald here
+    if (b.prefix === '/emerald') return;  // skip emerald
 
     app.use(
       b.prefix,
       createProxyMiddleware({
         target: b.target,
         changeOrigin: true,
-        pathRewrite: (pathReq) =>
-          pathReq.replace(new RegExp(`^${b.prefix}`), '')
+        pathRewrite: p => p.replace(new RegExp(`^${b.prefix}`), '')
       })
     );
   });
 }
 mountProxies();
 
-// Mount Emerald once with no pathRewrite
+// 2) Mount Emerald once with no pathRewrite
 app.use(
   '/emerald',
   createProxyMiddleware({
     target: 'http://localhost:5613',
     changeOrigin: true,
-    // no pathRewrite here
+    // no pathRewrite
+  })
+);
+
+// 3) Proxy Emerald’s absolute asset prefixes
+app.use(
+  [
+    '/uv',
+    '/baremux',
+    '/libcurl',
+    '/epoxy',
+    '/scram',
+    '/@vite/client',
+    '/@react-refresh',
+    '/src',
+  ],
+  createProxyMiddleware({
+    target: 'http://localhost:5613',
+    changeOrigin: true,
+    // no rewrite, forward as-is
   })
 );
 
