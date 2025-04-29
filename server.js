@@ -51,32 +51,31 @@ app.use(session({
   saveUninitialized: false,
 }));
 
-// Generic proxy mounting (including emerald with rewrite)
+// Mount all proxies except Emerald
 function mountProxies() {
   backends.forEach(b => {
+    if (b.prefix === '/emerald') return; // skip emerald here
+
     app.use(
       b.prefix,
       createProxyMiddleware({
         target: b.target,
         changeOrigin: true,
-        pathRewrite: (pathReq) => {
-          // For emerald, we skip rewrite in the override below, but rewrite here for others
-          if (b.prefix === '/emerald') return pathReq.replace(new RegExp(`^${b.prefix}`), '');
-          return pathReq.replace(new RegExp(`^${b.prefix}`), '');
-        }
+        pathRewrite: (pathReq) =>
+          pathReq.replace(new RegExp(`^${b.prefix}`), '')
       })
     );
   });
 }
 mountProxies();
 
-// **Override the emerald proxy** to preserve `/emerald` in paths
+// Mount Emerald once with no pathRewrite
 app.use(
   '/emerald',
   createProxyMiddleware({
     target: 'http://localhost:5613',
     changeOrigin: true,
-    // NO pathRewrite here
+    // no pathRewrite here
   })
 );
 
