@@ -1,56 +1,52 @@
 const fs = require('fs');
-require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
-const multer = require('multer');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const ejsLocals = require('ejs-locals');
+require('dotenv').config(); // For loading environment variables from .env file
 
-const APP_PORT = 8081;
-const ADMIN_PASS = process.env.ADMIN_PASS;
+const APP_PORT = process.env.APP_PORT || 8081;
+const ADMIN_PASS = process.env.ADMIN_PASS; // Loaded from .env
 
 const BACKENDS_FILE = path.join(__dirname, 'backends.json');
 let backends = [];
 
+// Load or initialize backends.json
 if (fs.existsSync(BACKENDS_FILE)) {
   backends = JSON.parse(fs.readFileSync(BACKENDS_FILE));
 } else {
   backends = [
-    { name: 'void', target: 'http://localhost:7070', prefix: '/void', logo: '/public/logo.png' },
-    { name: 'emerald', target: 'http://localhost:5613', prefix: '/emerald', logo: '/public/logo.png' },
-    { name: 'purplocity', target: 'http://localhost:8080', prefix: '/purplocity', logo: '/public/logo.png' },
+    { name: 'void',      target: 'http://localhost:7070', prefix: '/void' },
+    { name: 'emerald',   target: 'http://localhost:5613', prefix: '/emerald' },
+    { name: 'purplocity',target: 'http://localhost:8080', prefix: '/purplocity' },
   ];
   fs.writeFileSync(BACKENDS_FILE, JSON.stringify(backends, null, 2));
 }
 
 const app = express();
 
-// File upload setup
-const uploadDir = path.join(__dirname, 'public', 'logos');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
-});
-const upload = multer({ storage });
-
-// View engine setup
+// View engine & static files
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+
+// Register ejs-locals to enable layout support
 app.engine('ejs', ejsLocals);
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
+
+// Body & session for admin
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(session({
-  secret: 'a very secret key',
+  secret: process.env.SESSION_SECRET || 'a very secret key',
   resave: false,
   saveUninitialized: false,
 }));
 
+// Middleware: mount proxy routes dynamically
 function mountProxies() {
+  // clear any existing proxy mounts
   backends.forEach(b => {
     app.use(
       b.prefix,
@@ -64,19 +60,21 @@ function mountProxies() {
 }
 mountProxies();
 
+// --- Public hub page ---
 app.get('/', (req, res) => {
-  res.render('index', {
-    title: 'Home',
+  res.render('index', { 
+    title: 'Home',   // Title set dynamically here
     backends
   });
 });
 
+// --- Admin auth ---
 app.get('/admin/login', (req, res) => {
-  res.render('admin', {
-    title: 'Admin Login',
-    error: null,
-    backends,
-    loggedIn: !!req.session.admin
+  res.render('admin', { 
+    title: 'Admin Login',   // Title set dynamically here
+    error: null, 
+    backends, 
+    loggedIn: !!req.session.admin 
   });
 });
 app.post('/admin/login', (req, res) => {
@@ -84,31 +82,31 @@ app.post('/admin/login', (req, res) => {
     req.session.admin = true;
     return res.redirect('/admin');
   }
-  res.render('admin', {
-    title: 'Admin Login',
-    error: 'Invalid password',
-    backends,
-    loggedIn: false
+  res.render('admin', { 
+    title: 'Admin Login',   // Title set dynamically here
+    error: 'Invalid password', 
+    backends, 
+    loggedIn: false 
   });
 });
 app.get('/admin/logout', (req, res) => {
   req.session.destroy(() => { res.redirect('/'); });
 });
 
+// --- Admin panel: add & remove ---
 app.get('/admin', (req, res) => {
-  if (!req.session.admin) return res.redirect('/admin/login');
-  res.render('admin', {
-    title: 'Admin Panel',
-    error: null,
-    backends,
-    loggedIn: true
-  });
+    if (!req.session.admin) return res.redirect('/admin/login');
+    res.render('admin', {
+      title: 'Admin Panel',
+      error: null,
+      backends,
+      loggedIn: true
+    });
 });
-app.post('/admin/add', upload.single('logo'), (req, res) => {
+app.post('/admin/add', (req, res) => {
   if (!req.session.admin) return res.redirect('/admin');
   const { name, target, prefix } = req.body;
-  const logo = req.file ? `/public/logos/${req.file.filename}` : '/public/logo.png';
-  backends.push({ name, target, prefix, logo });
+  backends.push({ name, target, prefix });
   fs.writeFileSync(BACKENDS_FILE, JSON.stringify(backends, null, 2));
   mountProxies();
   res.redirect('/admin');
@@ -121,6 +119,7 @@ app.post('/admin/remove', (req, res) => {
   res.redirect('/admin');
 });
 
+// Start the server
 app.listen(APP_PORT, () => {
   console.log(`Proxy hub listening on http://localhost:${APP_PORT}`);
 });
