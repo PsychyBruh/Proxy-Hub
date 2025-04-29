@@ -8,7 +8,7 @@ const multer = require('multer');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const ejsLocals = require('ejs-locals');
 
-const APP_PORT = 8080;
+const APP_PORT = 8081;
 const ADMIN_PASS = process.env.ADMIN_PASS;
 
 const BACKENDS_FILE = path.join(__dirname, 'backends.json');
