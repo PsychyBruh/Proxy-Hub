@@ -15,7 +15,7 @@
     <ul id="proxyList">
       <% backends.forEach(b => { %>
         <li>
-          <span><strong><%= b.name %></strong> → <%= b.target %> (prefix: <%= b.prefix %>)</span>
+          <span><strong><%= b.name %></strong> → <%= b.target %></span>
           <form method="POST" action="/admin/remove">
             <input type="hidden" name="name" value="<%= b.name %>" />
             <button type="submit">Remove</button>
@@ -26,8 +26,7 @@
     <form method="POST" action="/admin/add" enctype="multipart/form-data" id="adminPanel">
       <h3>Add Backend</h3>
       <input name="name" placeholder="Key (e.g. void)" required />
-      <input name="target" placeholder="http://localhost:7070" required />
-      <input name="prefix" placeholder="/void" required />
+      <input name="target" placeholder="https://example.com" required />
       <input type="file" name="logo" accept="image/*" />
       <button type="submit">Add</button>
     </form>

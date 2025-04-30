@@ -15,7 +15,10 @@
       <button onclick="toggleTheme()" id="theme-toggle" class="button">Toggle Theme</button>
     </div>
   </div>
-  <main><%- body %></main>
+
+  <main>
+    <%- body %>
+  </main>
 
   <script>
     function toggleTheme() {
@@ -23,10 +26,11 @@
       localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
     }
 
-    // Load saved theme
     (function () {
       const theme = localStorage.getItem('theme');
-      if (theme === 'light') document.body.classList.add('light');
+      if (theme === 'light') {
+        document.body.classList.add('light');
+      }
     })();
   </script>
 </body>

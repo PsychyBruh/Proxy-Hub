@@ -5,7 +5,6 @@ const express = require('express');
 const session = require('express-session');
 const bodyParser = require('body-parser');
 const multer = require('multer');
-const { createProxyMiddleware } = require('http-proxy-middleware');
 const ejsLocals = require('ejs-locals');
 
 const APP_PORT = 8081;
@@ -19,9 +18,8 @@ if (fs.existsSync(BACKENDS_FILE)) {
   backends = JSON.parse(fs.readFileSync(BACKENDS_FILE));
 } else {
   backends = [
-    { name: 'void',      target: 'http://localhost:7070', prefix: '/void',       logo: '/public/logo.png' },
-    { name: 'emerald',   target: 'http://localhost:5613', prefix: '/emerald',    logo: '/public/logo.png' },
-    { name: 'purplocity',target: 'http://localhost:8080', prefix: '/purplocity', logo: '/public/logo.png' },
+    { name: 'void', target: 'https://example.com', logo: '/public/logo.png' },
+    { name: 'emerald', target: 'https://google.com', logo: '/public/logo.png' },
   ];
   fs.writeFileSync(BACKENDS_FILE, JSON.stringify(backends, null, 2));
 }
@@ -34,7 +32,7 @@ if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadDir),
-  filename:    (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname),
 });
 const upload = multer({ storage });
 
@@ -50,52 +48,6 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
 }));
-
-// 1) Mount all proxies except Emerald
-function mountProxies() {
-  backends.forEach(b => {
-    if (b.prefix === '/emerald') return;  // skip emerald
-
-    app.use(
-      b.prefix,
-      createProxyMiddleware({
-        target: b.target,
-        changeOrigin: true,
-        pathRewrite: p => p.replace(new RegExp(`^${b.prefix}`), '')
-      })
-    );
-  });
-}
-mountProxies();
-
-// 2) Mount Emerald once with no pathRewrite
-app.use(
-  '/emerald',
-  createProxyMiddleware({
-    target: 'http://localhost:5613',
-    changeOrigin: true,
-    // no pathRewrite
-  })
-);
-
-// 3) Proxy Emerald’s absolute asset prefixes
-app.use(
-  [
-    '/uv',
-    '/baremux',
-    '/libcurl',
-    '/epoxy',
-    '/scram',
-    '/@vite/client',
-    '/@react-refresh',
-    '/src',
-  ],
-  createProxyMiddleware({
-    target: 'http://localhost:5613',
-    changeOrigin: true,
-    // no rewrite, forward as-is
-  })
-);
 
 // --- Public hub page ---
 app.get('/', (req, res) => {
@@ -143,11 +95,10 @@ app.get('/admin', (req, res) => {
 // Add & remove backends (with logo upload)
 app.post('/admin/add', upload.single('logo'), (req, res) => {
   if (!req.session.admin) return res.redirect('/admin');
-  const { name, target, prefix } = req.body;
+  const { name, target } = req.body;
   const logo = req.file ? `/public/logos/${req.file.filename}` : '/public/logo.png';
-  backends.push({ name, target, prefix, logo });
+  backends.push({ name, target, logo });
   fs.writeFileSync(BACKENDS_FILE, JSON.stringify(backends, null, 2));
-  mountProxies();
   res.redirect('/admin');
 });
 app.post('/admin/remove', (req, res) => {
