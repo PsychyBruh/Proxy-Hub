@@ -1,1 +1,20 @@
-[]
+[
+  {
+    "name": "Ask Nova",
+    "url": "https://asknova.online",
+    "logo": "/logos/default.png",
+    "clicks": 2
+  },
+  {
+    "name": "Void",
+    "url": "https://void.com",
+    "logo": "/logos/default.png",
+    "clicks": 1
+  },
+  {
+    "name": "Emerald",
+    "url": "https://emerald.com",
+    "logo": "/logos/default.png",
+    "clicks": 1
+  }
+]
